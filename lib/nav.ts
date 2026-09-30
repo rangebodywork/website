@@ -5,14 +5,16 @@ export const ROUTES = {
   intake: "/intake",
   review: "/review",
   schedule: "/schedule",
+  bookings: "/bookings",
+  profile: "/profile",
 } as const;
 
 /** Primary navigation (bottom bar on mobile, header links on desktop). */
 export const PRIMARY_NAV: Array<{ href: string; label: string; icon: IconName; match: string[] }> = [
   { href: ROUTES.builder, label: "Practices", icon: "self_improvement", match: [ROUTES.builder] },
   { href: ROUTES.schedule, label: "Schedule", icon: "event", match: [ROUTES.schedule] },
-  { href: ROUTES.review, label: "Journey", icon: "hourglass_empty", match: [ROUTES.review] },
-  { href: ROUTES.intake, label: "Profile", icon: "person", match: [ROUTES.intake] },
+  { href: ROUTES.bookings, label: "My bookings", icon: "hourglass_empty", match: [ROUTES.bookings, ROUTES.review] },
+  { href: ROUTES.profile, label: "Profile", icon: "person", match: [ROUTES.profile, ROUTES.intake] },
 ];
 
 export const STUDIO = {
