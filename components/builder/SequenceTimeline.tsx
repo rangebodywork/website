@@ -1,14 +1,14 @@
 "use client";
 
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { MODALITIES } from "@/lib/catalog";
+import { useDatabase } from "@/lib/db-context";
 import { useBooking, type SessionBlock } from "@/lib/booking-context";
 import { cn } from "@/lib/cn";
 import { Icon } from "../Icon";
 import { Badge } from "../ui/Chip";
 
-function blockNote(block: SessionBlock): string {
-  if (!block.option) return MODALITIES[block.id].sequenceNote;
+function blockNote(block: SessionBlock, modalities: Record<string, import("@/lib/catalog").Modality>): string {
+  if (!block.option) return modalities[block.id].sequenceNote;
   return block.id === "massage" ? `${block.option} Focus` : block.option;
 }
 
@@ -22,6 +22,8 @@ interface DragState {
 
 /** Ordered list of selected modalities; reorder via drag handle (pointer) or arrow keys. */
 export function SequenceTimeline() {
+  const db = useDatabase();
+  const MODALITIES = db.modalities;
   const { blocks, actions } = useBooking();
   const listRef = useRef<HTMLOListElement>(null);
   const gesture = useRef<{ startY: number; centers: number[] } | null>(null);
@@ -113,7 +115,7 @@ export function SequenceTimeline() {
                   <div>
                     <p className="font-title-md text-title-md leading-tight text-primary">{block.name}</p>
                     <p className="font-body-sm text-body-sm text-on-surface-variant">
-                      {block.duration} min • {blockNote(block)}
+                      {block.duration} min • {blockNote(block, MODALITIES)}
                     </p>
                   </div>
                 </div>

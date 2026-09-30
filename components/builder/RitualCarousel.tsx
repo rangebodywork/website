@@ -1,12 +1,15 @@
 "use client";
 
-import { RITUALS, ritualTotals } from "@/lib/catalog";
+import { ritualTotals } from "@/lib/catalog";
+import { useDatabase } from "@/lib/db-context";
 import { useBooking } from "@/lib/booking-context";
 import { cn } from "@/lib/cn";
 import { formatDuration, formatPrice } from "@/lib/format";
 import { Icon } from "../Icon";
 
 export function RitualCarousel() {
+  const db = useDatabase();
+  const RITUALS = db.rituals;
   const { state, actions } = useBooking();
 
   return (

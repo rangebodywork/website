@@ -1,5 +1,6 @@
 import { Fragment } from "react";
-import { MODALITIES, TRANSITION_MINUTES } from "@/lib/catalog";
+import { TRANSITION_MINUTES } from "@/lib/catalog";
+import { useDatabase } from "@/lib/db-context";
 import type { SessionBlock } from "@/lib/booking-context";
 import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/format";
@@ -8,6 +9,8 @@ import { Card, CardHeader } from "../ui/Card";
 
 /** "Mindful Timeline" — hollow river-stone nodes, grounding transition before the final block. */
 export function SessionItinerary({ blocks }: { blocks: SessionBlock[] }) {
+  const db = useDatabase();
+  const MODALITIES = db.modalities;
   return (
     <Card className="space-y-4">
       <CardHeader

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { MODALITIES, type ModalityId } from "@/lib/catalog";
+import type { ModalityId } from "@/lib/catalog";
+import { useDatabase } from "@/lib/db-context";
 import { useBooking } from "@/lib/booking-context";
 import type { IconName } from "@/lib/icons";
 import { Icon } from "../Icon";
@@ -25,6 +26,8 @@ function GuideFact({ icon, iconClass, title, children }: { icon: IconName; iconC
 
 /** Bottom sheet explaining a modality (from builder variant 2). */
 export function ModalityGuideSheet({ id, onClose }: ModalityGuideSheetProps) {
+  const db = useDatabase();
+  const MODALITIES = db.modalities;
   const { actions } = useBooking();
   const closeRef = useRef<HTMLButtonElement>(null);
   const guide = id ? MODALITIES[id].guide : undefined;

@@ -1,6 +1,7 @@
 "use client";
 
-import { MODALITIES, durationsFor, type ModalityId } from "@/lib/catalog";
+import { durationsFor, type ModalityId } from "@/lib/catalog";
+import { useDatabase } from "@/lib/db-context";
 import { useBooking } from "@/lib/booking-context";
 import { cn } from "@/lib/cn";
 import { Icon } from "../Icon";
@@ -29,6 +30,8 @@ function GuideButton({ onClick, name }: { onClick: () => void; name: string }) {
 }
 
 export function ModalityCard({ id, active, onInteract, onOpenGuide }: ModalityCardProps) {
+  const db = useDatabase();
+  const MODALITIES = db.modalities;
   const { state, actions } = useBooking();
   const modality = MODALITIES[id];
   const selection = state.modalities[id];

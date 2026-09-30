@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { MODALITY_ORDER, type ModalityId } from "@/lib/catalog";
+import { useDatabase } from "@/lib/db-context";
 import { useBooking } from "@/lib/booking-context";
 import { formatDuration, formatPrice } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
@@ -20,6 +21,7 @@ export function BuilderView() {
   const [guideFor, setGuideFor] = useState<ModalityId | null>(null);
   const closeGuide = useCallback(() => setGuideFor(null), []);
   const count = blocks.length;
+  const db = useDatabase();
 
   return (
     <>
@@ -52,7 +54,7 @@ export function BuilderView() {
               </h2>
               <span className="font-label-sm text-label-sm text-on-surface-variant">Select durations &amp; focus</span>
             </div>
-            {MODALITY_ORDER.map((id) => (
+            {MODALITY_ORDER.filter(id => !db.modalities[id]?.disabled).map((id) => (
               <ModalityCard
                 key={id}
                 id={id}

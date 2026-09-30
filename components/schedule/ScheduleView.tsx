@@ -4,11 +4,15 @@ import { useState } from "react";
 import { Avatar, PORTRAITS } from "../Avatar";
 import { Icon } from "../Icon";
 import { Chip } from "../ui/Chip";
-import { RECURRING_CLASSES, SCHEDULE_FILTERS, WORKSHOPS, type ScheduleCategory } from "@/lib/schedule-data";
+import { SCHEDULE_FILTERS, type ScheduleCategory } from "@/lib/schedule-data";
+import { useDatabase } from "@/lib/db-context";
 import { ClassCard } from "./ClassCard";
 import { WorkshopCard } from "./WorkshopCard";
 
 export function ScheduleView() {
+  const db = useDatabase();
+  const RECURRING_CLASSES = db.classes;
+  const WORKSHOPS = db.workshops;
   const [filter, setFilter] = useState<ScheduleCategory | "all">("all");
   const matches = (categories: ScheduleCategory[]) => filter === "all" || categories.includes(filter);
   const classes = RECURRING_CLASSES.filter((c) => matches(c.categories));
