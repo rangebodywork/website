@@ -135,3 +135,24 @@ public/images/       practitioner & studio photography from the Stitch exports
 scripts/             fetch-icons.mjs (Material Symbols subset)
 docs/                original Stitch exports (unchanged)
 ```
+
+
+## Admin & Customer Separation
+
+The application routes are split into a **Customer** experience and an **Admin** back-office:
+
+- **Customer Flow (`app/(customer)`)**: Everything from the builder to intake, review, schedule, my bookings, and profile. It uses a customer-specific layout with the site footer.
+- **Admin Dashboard (`app/admin`)**: A hidden back-office mapped to `/admin`. It features its own side navigation layout and is gated by a **demo passcode** component.
+
+### Admin Features
+
+- **Dashboard**: High-level stats on upcoming bookings, classes, and workshops.
+- **Bookings Management**: A table to view, filter (upcoming, completed, cancelled), and change the status of bookings. It displays full intake details and health notes.
+- **Schedule Management**: Interfaces to add, edit, or remove recurring classes and workshops.
+- **Service Management**: Enable or disable modalities. Changes reflect instantly in the customer builder.
+
+### Data Layer
+
+All state, including bookings, catalog data, and schedule, is managed by a centralized typed repository (`lib/repository.ts`). This repository uses `useSyncExternalStore` for hydration-safe reactive updates across all components, persisting to `localStorage`. This sets up a clean seam for a future backend replacement.
+
+> **Security Note:** The admin passcode gate (0000) is for demonstration purposes only. It uses client-side state and `sessionStorage` and is **NOT** a real security boundary. Do not use in production.
