@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { SiteFooter } from "@/components/SiteFooter";
 import { BookingProvider } from "@/lib/booking-context";
 import { manrope, materialSymbols, newsreader } from "./fonts";
 import "./globals.css";
@@ -24,7 +23,6 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <body className="min-h-dvh">
         <BookingProvider>
           {children}
-          <SiteFooter />
         </BookingProvider>
       </body>
     </html>
