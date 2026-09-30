@@ -1,0 +1,463 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Soma Studio - Client Intake &amp; Session Customization</title>
+<!-- Google Fonts: Newsreader & Manrope -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-error-container": "#93000a",
+            "surface-container-high": "#ece7e2",
+            "on-primary-fixed": "#0a2013",
+            "inverse-surface": "#32302d",
+            "secondary": "#934a2d",
+            "on-background": "#1d1b19",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#380d00",
+            "surface-variant": "#e6e2dd",
+            "secondary-fixed-dim": "#ffb59a",
+            "inverse-primary": "#b3cdb9",
+            "error-container": "#ffdad6",
+            "surface-container": "#f2ede8",
+            "on-surface": "#1d1b19",
+            "secondary-fixed": "#ffdbce",
+            "error": "#ba1a1a",
+            "on-error": "#ffffff",
+            "on-secondary-container": "#78351a",
+            "background": "#fef8f3",
+            "surface": "#fef8f3",
+            "on-tertiary-container": "#c4d9cc",
+            "primary": "#33493a",
+            "primary-fixed": "#cfe9d4",
+            "primary-container": "#4a6151",
+            "on-tertiary-fixed": "#0d1f17",
+            "on-tertiary-fixed-variant": "#384b41",
+            "on-primary-fixed-variant": "#354c3d",
+            "on-surface-variant": "#424843",
+            "secondary-container": "#ffa17d",
+            "tertiary-container": "#4d6055",
+            "primary-fixed-dim": "#b3cdb9",
+            "on-primary-container": "#c1dbc7",
+            "outline-variant": "#c2c8c1",
+            "tertiary-fixed-dim": "#b6ccbe",
+            "on-secondary": "#ffffff",
+            "surface-container-highest": "#e6e2dd",
+            "tertiary-fixed": "#d2e8da",
+            "surface-dim": "#ded9d4",
+            "on-secondary-fixed-variant": "#753318",
+            "outline": "#737973",
+            "tertiary": "#36483e",
+            "inverse-on-surface": "#f5f0eb",
+            "on-primary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#f8f3ee",
+            "surface-tint": "#4d6454",
+            "surface-bright": "#fef8f3"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin": "2rem",
+            "gutter-lg": "2rem",
+            "gutter-sm": "1rem",
+            "space-lg": "2rem",
+            "space-sm": "0.75rem",
+            "margin-mobile": "1.25rem",
+            "gutter": "1.5rem",
+            "space-xl": "3.5rem",
+            "margin-desktop": "3.5rem",
+            "space-md": "1.25rem",
+            "space-xs": "0.375rem"
+          },
+          "fontFamily": {
+            "title-md": ["Manrope"],
+            "display-lg": ["Newsreader"],
+            "display-lg-mobile": ["Newsreader"],
+            "title-lg": ["Newsreader"],
+            "headline-md": ["Newsreader"],
+            "body-md": ["Manrope"],
+            "label-md": ["Manrope"],
+            "body-sm": ["Manrope"],
+            "label-sm": ["Manrope"],
+            "headline-lg-mobile": ["Newsreader"],
+            "headline-lg": ["Newsreader"],
+            "body-lg": ["Manrope"]
+          },
+          "fontSize": {
+            "title-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "display-lg": ["56px", { "lineHeight": "64px", "letterSpacing": "-0.02em", "fontWeight": "400" }],
+            "display-lg-mobile": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+            "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "400" }],
+            "body-md": ["15px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.06em", "fontWeight": "600" }],
+            "body-sm": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "headline-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+            "headline-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.015em", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+    }
+    /* Hide scrollbar for clean horizontal scrolling */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .ambient-shadow {
+      box-shadow: 0 4px 24px -2px rgba(54, 48, 41, 0.05), 0 2px 6px -1px rgba(54, 48, 41, 0.02);
+    }
+    .drawer-shadow {
+      box-shadow: 0 -8px 32px -4px rgba(45, 40, 34, 0.08);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen pb-28">
+<!-- Linear Task-Focused Header: Automatic Suppression of BottomNavBar per Semantic Shell Mandate -->
+<header class="sticky top-0 z-40 bg-surface/95 backdrop-blur-md shadow-sm transition-all duration-200">
+<div class="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
+<button aria-label="Go back" class="w-10 h-10 -ml-1 rounded-full flex items-center justify-center text-primary hover:bg-surface-container active:scale-[0.96] transition-all duration-150" type="button">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-widest">Solo Sanctuary</span>
+<h1 class="font-title-lg text-title-lg text-primary tracking-tight">Intake &amp; Tailoring</h1>
+</div>
+<button aria-label="Session Details Help" class="w-10 h-10 -mr-1 rounded-full flex items-center justify-center text-primary hover:bg-surface-container active:scale-[0.96] transition-all duration-150" type="button">
+<span class="material-symbols-outlined" data-icon="spa">spa</span>
+</button>
+</div>
+<!-- Active Session Recap Badge -->
+<div class="max-w-md mx-auto px-4 pb-3 flex items-center justify-center">
+<div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-high/80 text-primary border border-outline-variant/40 ambient-shadow">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label-md text-label-md text-primary font-semibold">2 hrs 15 min Custom Sanctuary Session</span>
+</div>
+</div>
+</header>
+<!-- Main Scrollable Intake Canvas -->
+<main class="max-w-md mx-auto px-4 pt-3 space-y-6">
+<!-- Practitioner Intro & Atmospheric Banner -->
+<div class="bg-surface-container-low rounded-xl p-4.5 border border-outline-variant/40 ambient-shadow">
+<div class="flex items-center gap-3.5">
+<div class="relative w-12 h-12 rounded-full overflow-hidden bg-surface-container-highest shrink-0 ring-2 ring-primary-fixed">
+<img class="w-full h-full object-cover" data-alt="A portrait of an experienced somatic practitioner in a serene, naturally lit studio surrounded by limestone plaster walls, warm linen tones, and soft green botanical leaves, conveying grounded presence, trust, and deep mindful calm." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpzP8L70NwTKuYJQL7s7y2Y_JTWR3rSbUPk9liqs2J_oeWptGs37qUFHXOZgh1u0C_DokW9GtLYPA0KlDA7r_fjLdocSO8O2uEiB4ZYXSSSnAjqtrmcHCz-ZwZgLp5MlUvFeuFlewrP06D5NYyE3jK8TEGblGKbhhNDr9pUch9tJFWk0dah94Tztm5vpPRuqu_JjqhmzcTlAEsKehkMGk-BvBKou4A4uB-zZOLAkp2e32F8k_e8eNs0w">
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-title-md text-title-md text-primary font-medium">Elena Vance, LMT</span>
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Somatic Bodywork &amp; Restorative Movement</p>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant/90 mt-3 italic border-l-2 border-secondary/50 pl-3">
+        "Every session is held in single-client presence with a 45-minute sacred transition buffer for your decompression."
+      </p>
+</div>
+<!-- SECTION 1: Date & Time Slot Selection -->
+<section class="space-y-3">
+<div class="flex items-baseline justify-between">
+<div>
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-wider font-semibold">Step 01</span>
+<h2 class="font-headline-md text-headline-md text-primary">Sacred Window</h2>
+</div>
+<span class="font-body-sm text-body-sm text-outline">October 2024</span>
+</div>
+<!-- Horizontal Calendar Date Strip -->
+<div class="flex gap-2 overflow-x-auto no-scrollbar py-1 -mx-4 px-4">
+<!-- Day Item: Inactive -->
+<button class="flex flex-col items-center justify-center min-w-[56px] h-20 rounded-xl bg-surface-container-low border border-outline-variant/30 text-on-surface-variant hover:border-primary/40 transition-all duration-150 shrink-0" type="button">
+<span class="font-label-sm text-label-sm text-outline">THU</span>
+<span class="font-title-lg text-title-lg font-normal text-on-surface mt-0.5">24</span>
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant mt-1.5"></span>
+</button>
+<!-- Day Item: Active / Selected -->
+<button class="flex flex-col items-center justify-center min-w-[56px] h-20 rounded-xl bg-primary text-on-primary border border-primary ambient-shadow transition-all duration-150 shrink-0" type="button">
+<span class="font-label-sm text-label-sm text-primary-fixed-dim">FRI</span>
+<span class="font-title-lg text-title-lg font-medium text-surface-container-lowest mt-0.5">25</span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary mt-1.5"></span>
+</button>
+<!-- Day Item: Inactive -->
+<button class="flex flex-col items-center justify-center min-w-[56px] h-20 rounded-xl bg-surface-container-low border border-outline-variant/30 text-on-surface-variant hover:border-primary/40 transition-all duration-150 shrink-0" type="button">
+<span class="font-label-sm text-label-sm text-outline">SAT</span>
+<span class="font-title-lg text-title-lg font-normal text-on-surface mt-0.5">26</span>
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant mt-1.5"></span>
+</button>
+<!-- Day Item: Inactive -->
+<button class="flex flex-col items-center justify-center min-w-[56px] h-20 rounded-xl bg-surface-container-low border border-outline-variant/30 text-on-surface-variant hover:border-primary/40 transition-all duration-150 shrink-0" type="button">
+<span class="font-label-sm text-label-sm text-outline">SUN</span>
+<span class="font-title-lg text-title-lg font-normal text-on-surface mt-0.5">27</span>
+<span class="w-1.5 h-1.5 rounded-full bg-secondary mt-1.5"></span>
+</button>
+<!-- Day Item: Inactive -->
+<button class="flex flex-col items-center justify-center min-w-[56px] h-20 rounded-xl bg-surface-container-low border border-outline-variant/30 text-on-surface-variant hover:border-primary/40 transition-all duration-150 shrink-0" type="button">
+<span class="font-label-sm text-label-sm text-outline">MON</span>
+<span class="font-title-lg text-title-lg font-normal text-on-surface mt-0.5">28</span>
+<span class="w-1.5 h-1.5 rounded-full bg-outline-variant mt-1.5"></span>
+</button>
+</div>
+<!-- Time Slots with Clear Practitioner Buffer Indicators -->
+<div class="space-y-2.5 pt-1">
+<!-- Slot 1: Active Selected -->
+<div class="relative p-3.5 rounded-xl bg-surface-container-low border-2 border-primary ambient-shadow transition-all">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="radio_button_checked" style="font-variation-settings: 'FILL' 1;">radio_button_checked</span>
+<div>
+<span class="font-title-md text-title-md text-primary font-semibold">9:30 AM – 11:45 AM</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Morning Quietude · Studio East Wing</p>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm font-semibold">Selected</span>
+</div>
+<div class="mt-2.5 pt-2 border-t border-outline-variant/30 flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="timelapse">timelapse</span>
+<span class="font-label-sm text-label-sm">45m Decompression Buffer reserved post-session</span>
+</div>
+</div>
+<!-- Slot 2 -->
+<div class="relative p-3.5 rounded-xl bg-surface-container-lowest border border-outline-variant/40 hover:border-primary/50 transition-all cursor-pointer">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-xl" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+<div>
+<span class="font-title-md text-title-md text-on-surface font-medium">2:00 PM – 4:15 PM</span>
+<p class="font-body-sm text-body-sm text-outline">Afternoon Gentle Radiance</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Available</span>
+</div>
+</div>
+<!-- Slot 3 -->
+<div class="relative p-3.5 rounded-xl bg-surface-container-lowest border border-outline-variant/40 hover:border-primary/50 transition-all cursor-pointer">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-outline text-xl" data-icon="radio_button_unchecked">radio_button_unchecked</span>
+<div>
+<span class="font-title-md text-title-md text-on-surface font-medium">5:00 PM – 7:15 PM</span>
+<p class="font-body-sm text-body-sm text-outline">Evening Twilight Restorative</p>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Available</span>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 2: Bodywork Focus & Somatic Release -->
+<section class="bg-surface-container-low rounded-xl p-4.5 border border-outline-variant/40 ambient-shadow space-y-4">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-primary-fixed flex items-center justify-center text-primary text-xs font-semibold">A</span>
+<h3 class="font-headline-md text-headline-md text-primary">Bodywork &amp; Physical Focus</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+        Select target physical meridian areas that require special holding, myofascial release, or mindful caution.
+      </p>
+<!-- Focus Area Chips -->
+<div class="flex flex-wrap gap-2 pt-1">
+<!-- Selected Chip -->
+<button class="px-3.5 py-1.5 rounded-full bg-secondary text-on-secondary font-label-md text-label-md flex items-center gap-1.5 shadow-sm" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+          Upper Back &amp; Neck
+        </button>
+<!-- Selected Chip -->
+<button class="px-3.5 py-1.5 rounded-full bg-secondary text-on-secondary font-label-md text-label-md flex items-center gap-1.5 shadow-sm" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+          Lumbar Spine
+        </button>
+<!-- Unselected Chip -->
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-highest/80 text-on-surface-variant border border-outline-variant/40 font-label-md text-label-md hover:border-primary" type="button">
+          Hips &amp; Pelvic Bowl
+        </button>
+<!-- Selected Chip -->
+<button class="px-3.5 py-1.5 rounded-full bg-secondary text-on-secondary font-label-md text-label-md flex items-center gap-1.5 shadow-sm" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+          Shoulder Girdle
+        </button>
+<!-- Unselected Chip -->
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-highest/80 text-on-surface-variant border border-outline-variant/40 font-label-md text-label-md hover:border-primary" type="button">
+          Sciatic Nerve Relief
+        </button>
+<!-- Unselected Chip -->
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-highest/80 text-on-surface-variant border border-outline-variant/40 font-label-md text-label-md hover:border-primary" type="button">
+          Cranial &amp; Jaw (TMJ)
+        </button>
+</div>
+<!-- Tactile Pressure Slider / Selectors -->
+<div class="pt-2">
+<label class="block font-title-md text-title-md text-primary mb-2">Pressure Calibration</label>
+<div class="grid grid-cols-4 gap-1.5 p-1 rounded-xl bg-surface-container-highest/60 border border-outline-variant/40">
+<button class="py-2 rounded-lg text-center font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" type="button">
+            Gentle
+          </button>
+<button class="py-2 rounded-lg text-center font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" type="button">
+            Moderate
+          </button>
+<button class="py-2 rounded-lg text-center font-label-md text-label-md bg-primary text-on-primary shadow-sm font-semibold" type="button">
+            Firm
+          </button>
+<button class="py-2 rounded-lg text-center font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" type="button">
+            Deep Somatic
+          </button>
+</div>
+</div>
+</section>
+<!-- SECTION 3: Personal Training & Restorative Movement -->
+<section class="bg-surface-container-low rounded-xl p-4.5 border border-outline-variant/40 ambient-shadow space-y-4">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-primary-fixed flex items-center justify-center text-primary text-xs font-semibold">B</span>
+<h3 class="font-headline-md text-headline-md text-primary">Yoga &amp; Movement Integration</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+        How would you like Elena to blend tailored movement mechanics into your sanctuary flow?
+      </p>
+<!-- Movement Goals -->
+<div class="grid grid-cols-2 gap-2 pt-1">
+<div class="flex items-center gap-2 p-2.5 rounded-lg bg-surface-container-lowest border border-outline-variant/40">
+<input checked="" class="rounded-sm text-primary focus:ring-primary border-outline/40" id="goal-mobility" type="checkbox">
+<label class="font-body-sm text-body-sm font-medium text-on-surface" for="goal-mobility">Thoracic Mobility</label>
+</div>
+<div class="flex items-center gap-2 p-2.5 rounded-lg bg-surface-container-lowest border border-outline-variant/40">
+<input class="rounded-sm text-primary focus:ring-primary border-outline/40" id="goal-core" type="checkbox">
+<label class="font-body-sm text-body-sm text-on-surface" for="goal-core">Core Stabilization</label>
+</div>
+<div class="flex items-center gap-2 p-2.5 rounded-lg bg-surface-container-lowest border border-outline-variant/40">
+<input checked="" class="rounded-sm text-primary focus:ring-primary border-outline/40" id="goal-posture" type="checkbox">
+<label class="font-body-sm text-body-sm font-medium text-on-surface" for="goal-posture">Posture Realignment</label>
+</div>
+<div class="flex items-center gap-2 p-2.5 rounded-lg bg-surface-container-lowest border border-outline-variant/40">
+<input checked="" class="rounded-sm text-primary focus:ring-primary border-outline/40" id="goal-stress" type="checkbox">
+<label class="font-body-sm text-body-sm font-medium text-on-surface" for="goal-stress">Vagal Reset (Nervous)</label>
+</div>
+</div>
+<!-- Injury Notes Input -->
+<div class="pt-1">
+<label class="block font-label-md text-label-md text-outline uppercase tracking-wider mb-1" for="injury-notes">
+          Recent Sensitivities, Sprains, or Surgeries
+        </label>
+<textarea class="w-full rounded-lg bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-0 text-on-surface placeholder:text-outline/70 font-body-sm text-body-sm p-3" id="injury-notes" placeholder="e.g., Mild rotator cuff pinch when raising right arm overhead, sensitive knees in deep flexion..." rows="2"></textarea>
+</div>
+</section>
+<!-- SECTION 4: Habit & Somatic Health Coaching Topics -->
+<section class="bg-surface-container-low rounded-xl p-4.5 border border-outline-variant/40 ambient-shadow space-y-4">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-primary-fixed flex items-center justify-center text-primary text-xs font-semibold">C</span>
+<h3 class="font-headline-md text-headline-md text-primary">Lifestyle Anchors &amp; Dialogue</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+        Coaching focus for the 20-minute seated integration tea portion:
+      </p>
+<div class="flex flex-wrap gap-2">
+<button class="px-3 py-1.5 rounded-full bg-surface-container-highest/80 text-on-surface-variant border border-outline-variant/40 font-label-md text-label-md hover:border-primary" type="button">
+          Circadian Sleep Hygiene
+        </button>
+<button class="px-3 py-1.5 rounded-full bg-secondary text-on-secondary font-label-md text-label-md flex items-center gap-1.5 shadow-sm" type="button">
+<span class="material-symbols-outlined text-sm" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+          Morning Breath &amp; Awakening Routine
+        </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container-highest/80 text-on-surface-variant border border-outline-variant/40 font-label-md text-label-md hover:border-primary" type="button">
+          Micro-Breaks at Desk
+        </button>
+<button class="px-3 py-1.5 rounded-full bg-surface-container-highest/80 text-on-surface-variant border border-outline-variant/40 font-label-md text-label-md hover:border-primary" type="button">
+          Gut &amp; Nervous System Nourishment
+        </button>
+</div>
+</section>
+<!-- SECTION 5: Client Contact & Mandatory Health Questionnaire -->
+<section class="bg-surface-container-low rounded-xl p-4.5 border border-outline-variant/40 ambient-shadow space-y-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="clinical_notes">clinical_notes</span>
+<h3 class="font-headline-md text-headline-md text-primary">Confidential Health Record</h3>
+</div>
+<div class="space-y-3">
+<!-- Client Name -->
+<div>
+<label class="block font-label-md text-label-md text-outline uppercase tracking-wider mb-1" for="full-name">Full Legal Name</label>
+<input class="w-full h-11 rounded-lg bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-0 text-on-surface font-body-md text-body-md px-3.5" id="full-name" type="text" value="Siddhartha Roy">
+</div>
+<!-- Phone & Emergency Contact Grid -->
+<div class="grid grid-cols-2 gap-2.5">
+<div>
+<label class="block font-label-md text-label-md text-outline uppercase tracking-wider mb-1" for="client-phone">Mobile Phone</label>
+<input class="w-full h-11 rounded-lg bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-0 text-on-surface font-body-sm text-body-sm px-3" id="client-phone" type="tel" value="(503) 841-2940">
+</div>
+<div>
+<label class="block font-label-md text-label-md text-outline uppercase tracking-wider mb-1" for="emergency-phone">Emergency Contact</label>
+<input class="w-full h-11 rounded-lg bg-surface-container-lowest border border-outline-variant/50 focus:border-primary focus:ring-0 text-on-surface font-body-sm text-body-sm px-3" id="emergency-phone" placeholder="Name &amp; Phone" type="tel" value="Maya R. · (503) 412-8819">
+</div>
+</div>
+<!-- Health Screening Checkboxes -->
+<div class="pt-2 space-y-2.5">
+<label class="flex items-start gap-2.5 cursor-pointer">
+<input checked="" class="mt-0.5 rounded-sm text-primary focus:ring-primary border-outline/40" type="checkbox">
+<span class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+              I am not currently experiencing acute fever, contagious illness, or unmanaged circulatory thrombosis.
+            </span>
+</label>
+<label class="flex items-start gap-2.5 cursor-pointer">
+<input class="mt-0.5 rounded-sm text-primary focus:ring-primary border-outline/40" type="checkbox">
+<span class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+              I am currently pregnant or suspect I may be pregnant (practitioner requires modified side-lying bolster protocols).
+            </span>
+</label>
+<label class="flex items-start gap-2.5 cursor-pointer">
+<input checked="" class="mt-0.5 rounded-sm text-primary focus:ring-primary border-outline/40" type="checkbox">
+<span class="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+              I consent to somatic bodywork and understand this practice supports nervous regulation and does not replace medical diagnostics.
+            </span>
+</label>
+</div>
+</div>
+</section>
+<!-- Cancellation & Sacred Space Policy Note -->
+<div class="p-3 rounded-lg bg-surface-container border border-outline-variant/30 flex items-start gap-2.5">
+<span class="material-symbols-outlined text-outline text-lg mt-0.5" data-icon="info">info</span>
+<p class="font-body-sm text-body-sm text-outline">
+        Because Elena holds only 2 clients per day to honor energetic focus, cancellations require 48 hours notice for full credit deposit transfer.
+      </p>
+</div>
+</main>
+<!-- Sticky CTA Footer -->
+<footer class="fixed bottom-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-md drawer-shadow border-t border-outline-variant/20 py-3.5 px-4">
+<div class="max-w-md mx-auto flex items-center justify-between gap-4">
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider block">Total Sanctuary Fee</span>
+<div class="flex items-baseline gap-1">
+<span class="font-title-lg text-title-lg text-primary font-bold">$265</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">· 135 mins</span>
+</div>
+</div>
+<button class="flex-1 max-w-[220px] h-12 rounded-lg bg-primary text-on-primary font-title-md text-title-md flex items-center justify-center gap-2 hover:bg-primary-container active:scale-[0.98] transition-all duration-150 ambient-shadow" type="button">
+<span class="">Review &amp; Confirm</span>
+<span class="material-symbols-outlined text-lg" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</footer>
+
+
+</body></html>

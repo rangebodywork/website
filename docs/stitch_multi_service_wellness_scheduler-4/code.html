@@ -1,0 +1,519 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Soma Studio - Schedule</title>
+<!-- Google Fonts: Newsreader & Manrope -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS with forms & container queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-error-container": "#93000a",
+            "surface-container-high": "#ece7e2",
+            "on-primary-fixed": "#0a2013",
+            "inverse-surface": "#32302d",
+            "secondary": "#934a2d",
+            "on-background": "#1d1b19",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed": "#380d00",
+            "surface-variant": "#e6e2dd",
+            "secondary-fixed-dim": "#ffb59a",
+            "inverse-primary": "#b3cdb9",
+            "error-container": "#ffdad6",
+            "surface-container": "#f2ede8",
+            "on-surface": "#1d1b19",
+            "secondary-fixed": "#ffdbce",
+            "error": "#ba1a1a",
+            "on-error": "#ffffff",
+            "on-secondary-container": "#78351a",
+            "background": "#fef8f3",
+            "surface": "#fef8f3",
+            "on-tertiary-container": "#c4d9cc",
+            "primary": "#33493a",
+            "primary-fixed": "#cfe9d4",
+            "primary-container": "#4a6151",
+            "on-tertiary-fixed": "#0d1f17",
+            "on-tertiary-fixed-variant": "#384b41",
+            "on-primary-fixed-variant": "#354c3d",
+            "on-surface-variant": "#424843",
+            "secondary-container": "#ffa17d",
+            "tertiary-container": "#4d6055",
+            "primary-fixed-dim": "#b3cdb9",
+            "on-primary-container": "#c1dbc7",
+            "outline-variant": "#c2c8c1",
+            "tertiary-fixed-dim": "#b6ccbe",
+            "on-secondary": "#ffffff",
+            "surface-container-highest": "#e6e2dd",
+            "tertiary-fixed": "#d2e8da",
+            "surface-dim": "#ded9d4",
+            "on-secondary-fixed-variant": "#753318",
+            "outline": "#737973",
+            "tertiary": "#36483e",
+            "inverse-on-surface": "#f5f0eb",
+            "on-primary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#f8f3ee",
+            "surface-tint": "#4d6454",
+            "surface-bright": "#fef8f3"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin": "2rem",
+            "gutter-lg": "2rem",
+            "gutter-sm": "1rem",
+            "space-lg": "2rem",
+            "space-sm": "0.75rem",
+            "margin-mobile": "1.25rem",
+            "gutter": "1.5rem",
+            "space-xl": "3.5rem",
+            "margin-desktop": "3.5rem",
+            "space-md": "1.25rem",
+            "space-xs": "0.375rem"
+          },
+          "fontFamily": {
+            "title-md": ["Manrope"],
+            "display-lg": ["Newsreader"],
+            "display-lg-mobile": ["Newsreader"],
+            "title-lg": ["Newsreader"],
+            "headline-md": ["Newsreader"],
+            "body-md": ["Manrope"],
+            "label-md": ["Manrope"],
+            "body-sm": ["Manrope"],
+            "label-sm": ["Manrope"],
+            "headline-lg-mobile": ["Newsreader"],
+            "headline-lg": ["Newsreader"],
+            "body-lg": ["Manrope"]
+          },
+          "fontSize": {
+            "title-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "display-lg": ["56px", { "lineHeight": "64px", "letterSpacing": "-0.02em", "fontWeight": "400" }],
+            "display-lg-mobile": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+            "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "500" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "400" }],
+            "body-md": ["15px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.06em", "fontWeight": "600" }],
+            "body-sm": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "headline-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+            "headline-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.015em", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .ambient-card {
+      box-shadow: 0 4px 24px -2px rgba(54, 48, 41, 0.04), 0 2px 6px -1px rgba(54, 48, 41, 0.02);
+    }
+    .ambient-modal {
+      box-shadow: 0 16px 48px -4px rgba(45, 40, 34, 0.08), 0 4px 12px -2px rgba(45, 40, 34, 0.03);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen pb-24 selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TOP APP BAR (Shared Component Anchor) -->
+<header class="bg-surface dark:bg-inverse-surface shadow-sm dark:shadow-none sticky top-0 z-40">
+<div class="flex justify-between items-center w-full px-4 h-16 max-w-4xl mx-auto">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary dark:text-inverse-primary" data-icon="spa">spa</span>
+<span class="font-title-lg text-title-lg text-primary dark:text-inverse-primary tracking-wide">Soma Studio</span>
+</div>
+<button aria-label="Open Calendar" class="text-primary dark:text-inverse-primary p-2 rounded-full hover:bg-surface-container transition-colors duration-200 active:scale-[0.98]" type="button">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+</button>
+</div>
+<!-- Segmented Control Tab -->
+<div class="px-4 pb-3"><div class="max-w-4xl mx-auto px-0 sm:px-4">
+<div class="bg-surface-container rounded-full p-1 flex items-center justify-between">
+<button class="w-1/2 py-2 px-3 rounded-full text-center font-label-md text-label-md text-on-surface-variant transition-colors duration-200 hover:text-primary" type="button">
+          Private Custom Sessions
+        </button>
+<button class="w-1/2 py-2 px-3 rounded-full bg-primary text-on-primary shadow-sm text-center font-label-md text-label-md transition-all" type="button">
+          Group Classes &amp; Immersions
+        </button>
+</div>
+</div></div>
+</header>
+<!-- MAIN SCROLLABLE CONTENT CANVAS -->
+<main class="max-w-4xl mx-auto px-4 sm:px-6 md:px-8 pt-4 pb-12 space-y-8">
+<!-- Practitioner Intro Micro-Card -->
+<section class="bg-surface-container-low rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-surface-variant/40 ambient-card">
+<div class="flex items-center space-x-3.5">
+<div class="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 relative border border-surface-variant/60">
+<img class="w-full h-full object-cover" data-alt="Intimate portrait of an experienced somatic practitioner and yoga guide with serene facial expression, soft morning light in an organic tactile earth-toned studio setting with limewash walls." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDK-PI2ZoZL6wmOgAkUJ1RqdNocdxAETzW4CcBPfdyPpE4N5FgFH3_1DLXb19qnz_KORmrCwEa9fEJLJNmfhSFPOgCDB1tUNX9Q07uCQgaOz9AqxZTbPv-usoJ-4T0Kjzzs9BslV8xCeLE0WgwG_2ps6K7j7k3OAegxOS4E1wYBzh7bFmUvw-RbbbqYdh9JSveLanZxC0-T_hPr55yNjIDqT3oWkUMik4o45hfG1WWxpEGY-5RbqWaPng">
+</div>
+<div class="min-w-0">
+<div class="flex items-center space-x-1.5">
+<span class="font-title-md text-title-md text-primary font-semibold">Elena Ward, E-RYT 500</span>
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Equinox Master Yoga Instructor &amp; Independent Somatic Educator</p>
+</div>
+</div>
+<div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+<span class="inline-flex items-center text-secondary font-label-sm text-label-sm bg-secondary-fixed/50 px-3 py-1 rounded-full font-medium">Equinox Instructor</span>
+<span class="inline-flex items-center text-primary font-label-sm text-label-sm bg-primary-fixed px-3 py-1 rounded-full font-medium">Private &amp; Retreats Host</span>
+</div>
+</section>
+
+<!-- Studio Location & Booking Distinction Informative Banner -->
+<section class="bg-surface-container rounded-xl p-4 sm:p-5 border border-outline-variant/60 flex flex-col md:flex-row md:items-center justify-between gap-3 text-on-surface">
+<div class="flex items-start space-x-3">
+<span class="material-symbols-outlined text-primary text-[24px] mt-0.5" data-icon="info">info</span>
+<div class="space-y-0.5">
+<p class="font-label-md text-label-md text-primary uppercase tracking-wide font-semibold">Class Location &amp; Booking Guide</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+Weekly group studio classes are taught exclusively through Equinox clubs (San Francisco &amp; Berkeley). Independent weekend masterclasses, clinics, and immersions are curated and booked directly with Elena.
+</p>
+</div>
+</div>
+<div class="flex items-center space-x-2 flex-shrink-0">
+<span class="font-label-sm text-label-sm text-secondary font-medium bg-secondary-fixed/30 px-2.5 py-1 rounded-full">Guest passes available</span>
+</div>
+</section>
+
+<!-- HORIZONTAL FILTER PILLS -->
+<section aria-label="Schedule Categories">
+<div class="flex items-center space-x-2 overflow-x-auto no-scrollbar py-1">
+<button class="flex-shrink-0 bg-primary text-on-primary font-label-md text-label-md px-4 py-1.5 rounded-full shadow-sm" type="button">
+All Offerings
+</button>
+<button class="flex-shrink-0 bg-surface-container text-on-surface-variant hover:text-primary font-label-md text-label-md px-4 py-1.5 rounded-full border border-surface-variant/60 transition-colors" type="button">
+Equinox Weekly Yoga
+</button>
+<button class="flex-shrink-0 bg-surface-container text-on-surface-variant hover:text-primary font-label-md text-label-md px-4 py-1.5 rounded-full border border-surface-variant/60 transition-colors" type="button">
+Weekend Immersions
+</button>
+<button class="flex-shrink-0 bg-surface-container text-on-surface-variant hover:text-primary font-label-md text-label-md px-4 py-1.5 rounded-full border border-surface-variant/60 transition-colors" type="button">
+Sound &amp; Breathwork
+</button>
+<button class="flex-shrink-0 bg-surface-container text-on-surface-variant hover:text-primary font-label-md text-label-md px-4 py-1.5 rounded-full border border-surface-variant/60 transition-colors" type="button">
+Anatomy Clinics
+</button>
+</div>
+</section>
+
+<!-- SECTION 1: EQUINOX GROUP YOGA SCHEDULE -->
+<section class="space-y-4">
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 pt-1">
+<div>
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-widest font-semibold">Club Rhythms</span>
+<h2 class="font-headline-md text-headline-md text-primary mt-0.5">Recurring Equinox Group Yoga</h2>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Exclusive to Equinox Members &amp; Invited Guests</span>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Schedule Card 1: Morning Solar Vinyasa Flow -->
+<article class="bg-surface-container-low rounded-xl p-5 ambient-card border-t-2 border-primary hover:border-primary-container transition-all flex flex-col justify-between">
+<div class="space-y-3">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<div class="flex items-center space-x-2">
+<span class="bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-medium">60 min</span>
+<span class="bg-surface-container text-on-surface-variant font-label-sm text-label-sm px-2.5 py-0.5 rounded-full">All Levels</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface pt-1">Morning Solar Vinyasa Flow</h3>
+</div>
+<span class="text-xs font-semibold tracking-wider uppercase text-secondary bg-secondary-fixed/50 px-2 py-0.5 rounded-md">Equinox SF</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
+An energizing solar cadence awakening the spine, fascial chains, and breath vitality before the workday unfolds.
+</p>
+<!-- Meta Details -->
+<div class="pt-3 border-t border-surface-variant/50 space-y-2 text-on-surface-variant">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="schedule">schedule</span>
+<span class="font-body-sm text-body-sm">Tues &amp; Thurs, 7:30 - 8:30 AM</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="fitness_center">fitness_center</span>
+<span class="font-body-sm text-body-sm truncate">Equinox Sports Club San Francisco • Main Yoga Studio</span>
+</div>
+</div>
+<!-- Notice Box -->
+<div class="p-2.5 bg-surface-container rounded-lg border border-surface-variant/50">
+<p class="font-label-sm text-label-sm text-on-surface-variant">
+<strong class="text-primary">Taught exclusively at Equinox:</strong> Book directly via the Equinox Member App or Front Desk. Non-members may inquire with Elena for guest pass reservations.
+</p>
+</div>
+</div>
+<!-- Action Row -->
+<div class="mt-4 pt-3 border-t border-surface-variant/40 flex items-center justify-between">
+<button aria-label="Save schedule" class="p-2 rounded-lg text-outline hover:text-primary hover:bg-surface-container transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="bookmark_border">bookmark_border</span>
+</button>
+<div class="flex items-center space-x-2">
+<a class="font-label-md text-label-md text-secondary hover:underline px-2 py-1" href="mailto:elena@somastudio.com?subject=Equinox%20Guest%20Pass%20Inquiry%20-%20Solar%20Vinyasa">
+Guest Inquiry
+</a>
+<a class="inline-flex items-center space-x-1.5 bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md px-4 py-2 rounded-lg transition-transform active:scale-[0.98]" href="https://www.equinox.com" rel="noreferrer" target="_blank">
+<span class="">Book in Equinox App</span>
+<span class="material-symbols-outlined text-[16px]" data-icon="open_in_new">open_in_new</span>
+</a>
+</div>
+</div>
+</article>
+
+<!-- Schedule Card 2: Sunday Sunset Yin & Sound Bath -->
+<article class="bg-surface-container-low rounded-xl p-5 ambient-card border-t-2 border-secondary hover:border-secondary-container transition-all flex flex-col justify-between">
+<div class="space-y-3">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<div class="flex items-center space-x-2">
+<span class="bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-medium">75 min</span>
+<span class="bg-surface-container text-on-surface-variant font-label-sm text-label-sm px-2.5 py-0.5 rounded-full">Restorative</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface pt-1">Sunday Sunset Yin &amp; Sound Bath</h3>
+</div>
+<span class="text-xs font-semibold tracking-wider uppercase text-secondary bg-secondary-fixed/50 px-2 py-0.5 rounded-md">Equinox Berkeley</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
+Long restful floor postures supported with organic linen bolsters, concluding in a 30-minute meditative alchemy sound journey.
+</p>
+<!-- Meta Details -->
+<div class="pt-3 border-t border-surface-variant/50 space-y-2 text-on-surface-variant">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="routine">routine</span>
+<span class="font-body-sm text-body-sm">Sundays, 6:00 - 7:15 PM</span>
+</div>
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="fitness_center">fitness_center</span>
+<span class="font-body-sm text-body-sm truncate">Equinox Berkeley • Yoga Sanctuary</span>
+</div>
+</div>
+<!-- Notice Box -->
+<div class="p-2.5 bg-surface-container rounded-lg border border-surface-variant/50">
+<p class="font-label-sm text-label-sm text-on-surface-variant">
+<strong class="text-primary">Taught exclusively at Equinox:</strong> Book via Equinox Member App (opens 26 hours in advance) or Concierge Desk. Non-members contact for guest pass.
+</p>
+</div>
+</div>
+<!-- Action Row -->
+<div class="mt-4 pt-3 border-t border-surface-variant/40 flex items-center justify-between">
+<button aria-label="Save schedule" class="p-2 rounded-lg text-outline hover:text-primary hover:bg-surface-container transition-colors" type="button">
+<span class="material-symbols-outlined" data-icon="bookmark_border">bookmark_border</span>
+</button>
+<div class="flex items-center space-x-2">
+<a class="font-label-md text-label-md text-secondary hover:underline px-2 py-1" href="mailto:elena@somastudio.com?subject=Equinox%20Guest%20Pass%20Inquiry%20-%20Sunset%20Yin">
+Guest Inquiry
+</a>
+<a class="inline-flex items-center space-x-1.5 bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md px-4 py-2 rounded-lg transition-transform active:scale-[0.98]" href="https://www.equinox.com" rel="noreferrer" target="_blank">
+<span class="">Book in Equinox App</span>
+<span class="material-symbols-outlined text-[16px]" data-icon="open_in_new">open_in_new</span>
+</a>
+</div>
+</div>
+</article>
+</div>
+</section>
+
+<!-- SECTION 2: INDEPENDENT WORKSHOPS & IMMERSIONS -->
+<section class="space-y-4 pt-2">
+<div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1">
+<div>
+<div class="flex items-center space-x-2">
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-widest font-semibold">Direct Booking • Soma Studio</span>
+<span class="bg-primary-fixed text-on-primary-fixed font-label-sm text-label-sm px-2 py-0.5 rounded-full">Independent Events</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-primary mt-1">Workshops, Immersions &amp; Clinics</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">In-depth multi-hour somatic explorations curated and hosted directly by Elena Ward. Open to all students.</p>
+</div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- WORKSHOP CARD 1: Expandable Somatic Intensive -->
+<article class="bg-surface-container-low rounded-xl overflow-hidden ambient-card border border-surface-variant/60 flex flex-col justify-between">
+<div>
+<!-- Visual Header -->
+<div class="h-44 w-full relative">
+<img class="w-full h-full object-cover" data-alt="A tranquil sunlit somatic yoga sanctuary with organic linen cushions, textured plaster lime walls, warm wooden floor, singing bowls, and soft warm afternoon shadows casting gentle geometric light." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBo_ieoe-cTWJWZ2qsapBhJB6fBQFU7m09YC3TnuREX_Ld8bly1CM5eBFkjG3tTanVjtEUTyVEvLPfBCJZhTsX2Uvxnu7cHTjt0lcpOfD11ywo0cWeWry0vhz07B0JudDSwUfapcgYKGuH9vIUaFYs75xDPXa9sAgGtN7mPQj4lzF_aZ-rjCRVFGb1cdVQU-ZI8h0xO6vP2P7v6m9ryIn8rJLd4F5CVRT_PEq_YSwYr1YfmIR6NYA7zPg">
+<div class="absolute inset-0 bg-gradient-to-t from-inverse-surface/80 via-inverse-surface/20 to-transparent"></div>
+<div class="absolute bottom-3 left-4 right-4 flex justify-between items-end">
+<span class="bg-secondary text-on-secondary font-label-sm text-label-sm px-2.5 py-1 rounded-full font-medium">Saturday Intensive</span>
+<span class="text-inverse-on-surface font-title-lg text-title-lg font-medium">$145</span>
+</div>
+</div>
+<div class="p-4 sm:p-5 space-y-3">
+<div>
+<div class="flex items-center space-x-2 text-on-surface-variant text-body-sm font-body-sm mb-1">
+<span class="material-symbols-outlined text-[16px] text-primary" data-icon="event">event</span>
+<span class="">Sat Oct 14 • 10:00 AM - 2:00 PM (4 hrs) • Soma Sanctuary</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface">Somatic Release &amp; Breathwork Weekend Intensive</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+A nervous system reset combining conscious connected breathing, psoas release therapeutics, and trauma-informed unwinding techniques.
+</p>
+<!-- Inclusions Pill List -->
+<div class="bg-surface-container rounded-lg p-3 space-y-1.5">
+<span class="font-label-sm text-label-sm text-primary font-semibold block">Direct Registration Includes:</span>
+<ul class="font-body-sm text-body-sm text-on-surface-variant space-y-1">
+<li class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="check_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="">Organic ceremonial herbal tea &amp; grounding broth</span>
+</li>
+<li class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="check_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="">Hand-bound linen somatic reflection journal &amp; pen</span>
+</li>
+<li class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-[16px] text-secondary" data-icon="check_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="">Post-workshop 14-day guided audio practices</span>
+</li>
+</ul>
+</div>
+<!-- Expandable Syllabus Trigger -->
+<details class="group border-t border-surface-variant/60 pt-2 text-on-surface">
+<summary class="flex justify-between items-center cursor-pointer list-none py-1 font-label-md text-label-md text-primary hover:text-primary-container">
+<span class="">View 4-Hour Syllabus Timeline</span>
+<span class="material-symbols-outlined transition-transform duration-200 group-open:rotate-180" data-icon="expand_more">expand_more</span>
+</summary>
+<div class="pt-3 pb-1 space-y-3 relative pl-4 border-l-2 border-surface-variant/80 ml-2 mt-2">
+<div class="relative">
+<span class="w-2.5 h-2.5 rounded-full bg-primary absolute -left-[21px] top-1"></span>
+<p class="font-label-md text-label-md text-primary font-semibold">10:00 - 11:00 AM</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Grounding tea, circle alignment, and nervous-system physiology overview.</p>
+</div>
+<div class="relative">
+<span class="w-2.5 h-2.5 rounded-full bg-primary absolute -left-[21px] top-1"></span>
+<p class="font-label-md text-label-md text-primary font-semibold">11:00 AM - 12:30 PM</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Somatic unwinding sequence &amp; diaphragmatic psoas release.</p>
+</div>
+<div class="relative">
+<span class="w-2.5 h-2.5 rounded-full bg-primary absolute -left-[21px] top-1"></span>
+<p class="font-label-md text-label-md text-primary font-semibold">12:30 - 1:30 PM</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Conscious circular breathwork journey with vibrational instruments.</p>
+</div>
+<div class="relative">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary absolute -left-[21px] top-1"></span>
+<p class="font-label-md text-label-md text-secondary font-semibold">1:30 - 2:00 PM</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Integration journaling, grounding herbal broth, and closing meditation.</p>
+</div>
+</div>
+</details>
+</div>
+</div>
+<!-- Direct Booking Buttons -->
+<div class="p-4 sm:p-5 pt-0 flex items-center space-x-2">
+<button class="w-1/2 flex items-center justify-center space-x-1.5 py-2.5 rounded-lg border border-outline-variant/60 hover:bg-surface-container font-label-md text-label-md text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]" data-icon="event_note">event_note</span>
+<span class="">Add to Calendar</span>
+</button>
+<button class="w-1/2 py-2.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md transition-transform active:scale-[0.98] text-center shadow-sm" type="button">
+Reserve Spot ($145)
+</button>
+</div>
+</article>
+
+<!-- WORKSHOP CARD 2: Postural Alignment & Fascial Clinic -->
+<article class="bg-surface-container-low rounded-xl p-4 sm:p-5 ambient-card border border-surface-variant/60 flex flex-col justify-between">
+<div class="space-y-3">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<span class="bg-surface-variant text-on-surface-variant font-label-sm text-label-sm px-2.5 py-0.5 rounded-full font-medium">Anatomy Masterclass</span>
+<h3 class="font-headline-md text-headline-md text-on-surface pt-1">Postural Alignment &amp; Fascial Bodywork Clinic</h3>
+</div>
+<div class="text-right">
+<span class="font-title-lg text-title-lg text-primary block font-medium">$120</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">materials inc.</span>
+</div>
+</div>
+<div class="flex items-center space-x-2 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="calendar_month">calendar_month</span>
+<span class="">Sat Nov 4 • 1:00 PM - 4:00 PM (3 hrs) • Soma Loft Studio</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+Learn hands-on myofascial self-care using cork spheres, reciprocal inhibition techniques, and gait realignment for sustained tension relief.
+</p>
+<div class="bg-surface-container rounded-lg p-3 space-y-1 text-on-surface-variant font-body-sm text-body-sm">
+<div class="flex items-center space-x-2 text-primary font-semibold font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]" data-icon="inventory_2">inventory_2</span>
+<span class="">Take-Home Gear Included</span>
+</div>
+<p class="">Includes high-density cork mobility sphere set and illustrated fascial unwinding companion guide.</p>
+</div>
+</div>
+<div class="mt-6 pt-3 border-t border-surface-variant/40 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary font-medium">Hosted directly by Soma Studio</span>
+<button class="bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md px-5 py-2.5 rounded-lg transition-transform active:scale-[0.98] shadow-sm" type="button">
+Reserve Spot ($120)
+</button>
+</div>
+</article>
+</div>
+</section>
+
+<!-- Studio Ethics / Equinox & Independent Guest Notes -->
+<section class="bg-surface-container/60 rounded-xl p-5 border border-outline-variant/30 text-center space-y-2">
+<span class="material-symbols-outlined text-primary text-[24px]" data-icon="self_improvement">self_improvement</span>
+<h4 class="font-title-lg text-title-lg text-primary">Atmosphere &amp; Attendance</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-lg mx-auto">
+For Equinox classes, check in at the club concierge 10 minutes prior to session. For independent weekend immersions at Soma Studio, doors close promptly 5 minutes before start. Organic linen props and mats are provided at all locations.
+</p>
+</section>
+</main>
+<!-- BOTTOM NAVIGATION BAR (Shared Component Anchor) -->
+<!-- Strict Hierarchy Lock: Primary screen is Schedule -> Tab 'Schedule' is active -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface-container-low dark:bg-inverse-surface shadow-md dark:shadow-none">
+<!-- Practices (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-3 py-1.5 hover:text-primary dark:hover:text-inverse-primary transition-colors duration-200 active:scale-[0.96]" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="self_improvement">self_improvement</span>
+<span class="font-label-sm text-label-sm mt-0.5">Practices</span>
+</a>
+<!-- Schedule (ACTIVE MATCH) -->
+<a class="flex flex-col items-center justify-center bg-primary-fixed dark:bg-primary-container text-on-primary-fixed dark:text-on-primary-container rounded-full px-3 py-1.5 transition-transform duration-150 active:scale-[0.96]" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="event" data-weight="fill" style="font-variation-settings: 'FILL' 1;">event</span>
+<span class="font-label-sm text-label-sm mt-0.5 font-semibold">Schedule</span>
+</a>
+<!-- Journey (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-3 py-1.5 hover:text-primary dark:hover:text-inverse-primary transition-colors duration-200 active:scale-[0.96]" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="hourglass_empty">hourglass_empty</span>
+<span class="font-label-sm text-label-sm mt-0.5">Journey</span>
+</a>
+<!-- Profile (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant px-3 py-1.5 hover:text-primary dark:hover:text-inverse-primary transition-colors duration-200 active:scale-[0.96]" href="#">
+<span class="material-symbols-outlined text-[22px]" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm mt-0.5">Profile</span>
+</a>
+</nav>
+<!-- Lightweight Micro-Interaction Script -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Filter pill interaction
+      const filterPills = document.querySelectorAll('section[aria-label="Schedule Categories"] button');
+      filterPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          filterPills.forEach(p => {
+            p.className = 'flex-shrink-0 bg-surface-container text-on-surface-variant hover:text-primary font-label-md text-label-md px-4 py-1.5 rounded-full border border-surface-variant/60 transition-colors';
+          });
+          pill.className = 'flex-shrink-0 bg-primary text-on-primary font-label-md text-label-md px-4 py-1.5 rounded-full shadow-sm';
+        });
+      });
+    });
+  </script>
+
+
+</body></html>
