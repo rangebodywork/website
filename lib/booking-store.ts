@@ -1,5 +1,5 @@
+import { repository } from "./repository";
 import {
-  MODALITIES,
   MODALITY_ORDER,
   MOVEMENT_GOALS,
   type ConsentId,
@@ -54,8 +54,8 @@ function defaultModalities(): Record<ModalityId, ModalitySelection> {
       id,
       {
         enabled: enabled.includes(id),
-        duration: MODALITIES[id].defaultDuration,
-        option: MODALITIES[id].options?.defaultChoice,
+        duration: repository.getSnapshot().modalities[id].defaultDuration,
+        option: repository.getSnapshot().modalities[id].options?.defaultChoice,
       },
     ]),
   ) as Record<ModalityId, ModalitySelection>;

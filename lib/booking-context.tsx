@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
-import { MODALITIES, RITUALS, priceFor, type ModalityId } from "./catalog";
+import { priceFor, type ModalityId } from "./catalog";
+import { repository } from "./repository";
 import {
   DEFAULT_STATE,
   getServerSnapshot,
@@ -51,7 +52,7 @@ const actions = {
     }));
   },
   applyRitual(ritualId: string) {
-    const ritual = RITUALS.find((r) => r.id === ritualId);
+    const ritual = repository.getSnapshot().rituals.find((r) => r.id === ritualId);
     if (!ritual) return;
     editSession((s) => {
       const modalities = Object.fromEntries(
@@ -96,7 +97,19 @@ const actions = {
   },
   confirm() {
     const reference = `SOMA-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
-    updateState((s) => ({ ...s, confirmation: { reference, confirmedAt: new Date().toISOString() } }));
+    const confirmedAt = new Date().toISOString();
+    updateState((s) => {
+      const newState = { ...s, confirmation: { reference, confirmedAt } };
+      // Save into global repository
+      repository.update((db) => ({
+        ...db,
+        bookings: [
+          ...db.bookings,
+          { id: reference, createdAt: confirmedAt, status: "upcoming", state: newState },
+        ],
+      }));
+      return newState;
+    });
   },
   /** Starts a fresh session, keeping the client's contact details and saved classes. */
   startOver() {
@@ -132,6 +145,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     const blocks = state.sequence
       .filter((id) => state.modalities[id]?.enabled)
       .map((id) => {
+        const MODALITIES = repository.getSnapshot().modalities;
         const sel = state.modalities[id];
         return {
           id,

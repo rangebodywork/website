@@ -3,6 +3,7 @@ import type { IconName } from "./icons";
 export type ModalityId = "massage" | "yoga" | "coaching" | "breathwork" | "training";
 
 export interface Modality {
+  disabled?: boolean;
   id: ModalityId;
   name: string;
   tagline: string;
