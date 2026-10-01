@@ -61,15 +61,121 @@ function upsertById<T extends { id: string }>(list: T[], item: T): T[] {
   return list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item];
 }
 
+/* ------------------------------------------------------------ Persistence --- */
+
+/**
+ * Bump when the stored shape changes; `parse` migrates older versions.
+ * v1 stored whole modality objects, v2 stores only the admin-editable fields.
+ */
+const SCHEMA_VERSION = 2;
+
+/** The admin-editable part of a modality; everything else always comes from code. */
+type ModalityOverride = Pick<Modality, "disabled" | "pricing" | "defaultDuration">;
+
+interface PersistedDatabase {
+  version: typeof SCHEMA_VERSION;
+  modalities: Partial<Record<ModalityId, ModalityOverride>>;
+  classes: RecurringClass[];
+  workshops: Workshop[];
+  bookings: ConfirmedBooking[];
+}
+
+const BOOKING_STATUSES: BookingStatus[] = ["upcoming", "completed", "cancelled"];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function hasStrings(value: Record<string, unknown>, keys: string[]): boolean {
+  return keys.every((k) => typeof value[k] === "string");
+}
+
+function parsePricing(value: unknown): Record<number, number> | null {
+  if (!isRecord(value)) return null;
+  const entries = Object.entries(value)
+    .map(([d, p]) => [Number(d), p] as const)
+    .filter((e): e is readonly [number, number] => {
+      const [d, p] = e;
+      return Number.isInteger(d) && d > 0 && typeof p === "number" && Number.isFinite(p) && p >= 0;
+    });
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
+
+/** Code catalog first, then whichever stored overrides are well-formed. */
+function mergeModalities(stored: unknown): Record<ModalityId, Modality> {
+  const overrides = isRecord(stored) ? stored : {};
+  return Object.fromEntries(
+    Object.values(MODALITIES).map((base) => {
+      const o = isRecord(overrides[base.id]) ? (overrides[base.id] as Record<string, unknown>) : {};
+      const pricing = parsePricing(o.pricing) ?? base.pricing;
+      const defaultDuration =
+        typeof o.defaultDuration === "number" && o.defaultDuration in pricing
+          ? o.defaultDuration
+          : base.defaultDuration in pricing
+            ? base.defaultDuration
+            : Math.min(...Object.keys(pricing).map(Number));
+      return [base.id, { ...base, pricing, defaultDuration, disabled: o.disabled === true }];
+    }),
+  ) as Record<ModalityId, Modality>;
+}
+
+function parseList<T>(value: unknown, fallback: T[], valid: (item: Record<string, unknown>) => boolean): T[] {
+  if (!Array.isArray(value)) return fallback;
+  return value.filter((item) => isRecord(item) && valid(item)) as T[];
+}
+
+const isClass = (c: Record<string, unknown>) =>
+  hasStrings(c, ["id", "title", "description", "when", "location", "venue", "duration", "level"]) &&
+  Array.isArray(c.categories);
+
+const isWorkshop = (w: Record<string, unknown>) =>
+  hasStrings(w, ["id", "title", "kicker", "date", "when", "venue", "description"]) &&
+  typeof w.price === "number" &&
+  typeof w.startMinutes === "number" &&
+  typeof w.durationMinutes === "number" &&
+  Array.isArray(w.categories);
+
+const isBooking = (b: Record<string, unknown>) =>
+  hasStrings(b, ["id", "createdAt"]) &&
+  BOOKING_STATUSES.includes(b.status as BookingStatus) &&
+  isRecord(b.state) &&
+  Array.isArray(b.state.sequence) &&
+  isRecord(b.state.modalities) &&
+  isRecord(b.state.intake);
+
 function parse(raw: string | null): AppDatabase {
   if (!raw) return DEFAULT_DB;
   try {
-    const data = JSON.parse(raw) as Partial<AppDatabase>;
-    if (data.version !== 1) return DEFAULT_DB;
-    return { ...DEFAULT_DB, ...data };
+    const data: unknown = JSON.parse(raw);
+    if (!isRecord(data) || (data.version !== 1 && data.version !== SCHEMA_VERSION)) return DEFAULT_DB;
+    return {
+      version: 1,
+      modalities: mergeModalities(data.modalities),
+      // Rituals are not admin-editable, so code changes always win.
+      rituals: RITUALS,
+      classes: parseList(data.classes, RECURRING_CLASSES, isClass),
+      workshops: parseList(data.workshops, WORKSHOPS, isWorkshop),
+      bookings: parseList(data.bookings, [], isBooking),
+    };
   } catch {
     return DEFAULT_DB;
   }
+}
+
+function serialize(db: AppDatabase): string {
+  const persisted: PersistedDatabase = {
+    version: SCHEMA_VERSION,
+    modalities: Object.fromEntries(
+      Object.values(db.modalities).map((m) => [
+        m.id,
+        { disabled: m.disabled, pricing: m.pricing, defaultDuration: m.defaultDuration },
+      ]),
+    ),
+    classes: db.classes,
+    workshops: db.workshops,
+    bookings: db.bookings,
+  };
+  return JSON.stringify(persisted);
 }
 
 export function createLocalStorageRepository(): Repository {
@@ -91,7 +197,7 @@ export function createLocalStorageRepository(): Repository {
     current = updater(read());
     if (typeof window !== "undefined") {
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+        window.localStorage.setItem(STORAGE_KEY, serialize(current));
       } catch {
         // Storage can be unavailable (private mode, quota); data still lives in memory.
       }
