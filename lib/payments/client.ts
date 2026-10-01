@@ -1,6 +1,12 @@
 import { repository, type ConfirmedBooking } from "../repository";
 import type { HostedCardForm, TransactionResult } from "./gateway";
-import { cancellationQuote, sessionCharged, type PaymentKind, type PaymentRecord, type SavedCard } from "./policy";
+import {
+  sessionCharged,
+  type CancellationQuote,
+  type PaymentKind,
+  type PaymentRecord,
+  type SavedCard,
+} from "./policy";
 
 /** Browser-side calls to our own `/api/payments` routes; never to the processor. */
 
@@ -42,7 +48,8 @@ const inFlight = new Set<string>();
 /**
  * Charges the booking's card on file and records the attempt (success or
  * failure) on the booking. Returns null if a charge for it is already running,
- * or if this is a session charge and the session was already charged.
+ * or if nothing may be charged: a session already charged, or a fee once
+ * the session or a fee has been charged.
  */
 export async function chargeBooking(snapshot: ConfirmedBooking, kind: PaymentKind, amount: number): Promise<PaymentRecord | null> {
   // Decide on the latest stored record, not whatever the caller rendered.
@@ -50,6 +57,7 @@ export async function chargeBooking(snapshot: ConfirmedBooking, kind: PaymentKin
   if (!booking.payment) throw new Error("No card on file for this booking");
   if (inFlight.has(booking.id)) return null;
   if (kind === "session" && sessionCharged(booking.payment)) return null;
+  if (kind === "late-cancel-fee" && booking.payment.status !== "card-on-file" && booking.payment.status !== "failed") return null;
   inFlight.add(booking.id);
   try {
     return await attemptCharge(booking, kind, amount);
@@ -81,12 +89,11 @@ async function attemptCharge(booking: ConfirmedBooking, kind: PaymentKind, amoun
 }
 
 /**
- * Cancels a booking under the current policy: inside the window the fee is
- * charged to the card on file first. The booking is cancelled either way; a
- * failed fee charge is left on the booking for the studio to follow up.
+ * Cancels a booking with the quote the customer was shown: inside the window
+ * that fee is charged to the card on file first. The booking is cancelled
+ * either way; a failed fee charge is left on the booking for the studio to retry.
  */
-export async function cancelBooking(booking: ConfirmedBooking): Promise<PaymentRecord | null> {
-  const quote = cancellationQuote(booking.state.intake, booking.payment, repository.getPaymentSettings());
+export async function cancelBooking(booking: ConfirmedBooking, quote: CancellationQuote): Promise<PaymentRecord | null> {
   const fee = quote.chargeable ? await chargeBooking(booking, "late-cancel-fee", quote.fee) : null;
   await repository.setBookingStatus(booking.id, "cancelled");
   return fee;

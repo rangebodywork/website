@@ -176,9 +176,11 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
               type="button"
               disabled={cancelling}
               onClick={async () => {
+                if (!quote) return;
                 setCancelling(true);
                 try {
-                  await cancelBooking(booking);
+                  // The quote shown when the dialog opened, so the fee charged is the fee displayed.
+                  await cancelBooking(booking, quote);
                   actions.syncCancelled(booking.id);
                 } finally {
                   setCancelling(false);
