@@ -3,6 +3,13 @@
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Icon } from "@/components/Icon";
 
+/**
+ * DEMO ONLY — NOT REAL SECURITY. The passcode ships in the client bundle and
+ * the "session" is a sessionStorage flag anyone can set. A real admin needs
+ * server-side authentication; do not use this gate in production.
+ */
+export const DEMO_ADMIN_PASSCODE = "0000";
+
 const AUTH_KEY = "admin-auth";
 const listeners = new Set<() => void>();
 
@@ -53,8 +60,8 @@ export function PasscodeGate({ children }: { children: ReactNode }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // DEMO ONLY: Not real security. DO NOT USE IN PRODUCTION.
-    if (code === "0000") {
+    // See DEMO_ADMIN_PASSCODE: a client-side check, not a security boundary.
+    if (code === DEMO_ADMIN_PASSCODE) {
       setAuthed(true);
     } else {
       setError(true);
@@ -70,7 +77,7 @@ export function PasscodeGate({ children }: { children: ReactNode }) {
       <div className="w-full max-w-sm p-6 rounded-2xl border border-outline-variant/30 bg-surface-container shadow-ambient text-center">
         <Icon name="lock" className="text-4xl text-primary mb-4 mx-auto" />
         <h1 className="font-title-lg text-primary mb-2">Admin Access</h1>
-        <p className="text-body-sm text-on-surface-variant mb-6">Demo environment. Use passcode 0000.</p>
+        <p className="text-body-sm text-on-surface-variant mb-6">Demo environment, not real security. Use passcode {DEMO_ADMIN_PASSCODE}.</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <label htmlFor="admin-passcode" className="sr-only">
             Admin passcode
