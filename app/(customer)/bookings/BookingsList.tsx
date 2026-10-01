@@ -166,7 +166,9 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
             {quote?.alreadyPaid
               ? "This booking has already been charged, so no cancellation fee applies."
               : !quote?.late
-                ? "No cancellation fee applies: you are cancelling outside the late-cancellation window."
+                ? paymentSettings.cancellationFee > 0
+                  ? `No cancellation fee applies: you are cancelling more than ${paymentSettings.cancellationWindowHours} hours before your session.`
+                  : "No cancellation fee applies."
                 : quote.chargeable
                   ? `This is within ${paymentSettings.cancellationWindowHours} hours of your session, so a ${formatPrice(quote.fee, true)} cancellation fee will be charged to ${booking.payment!.card.brand} ending ${booking.payment!.card.last4}.`
                   : `This is within ${paymentSettings.cancellationWindowHours} hours of your session, so a ${formatPrice(quote.fee, true)} cancellation fee applies. The studio will contact you about payment.`}
