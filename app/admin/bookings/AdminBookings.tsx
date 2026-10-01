@@ -11,10 +11,7 @@ export function AdminBookings() {
   const filteredBookings = bookings.filter((b) => filter === "all" || b.status === filter);
 
   const updateStatus = (id: string, status: "upcoming" | "completed" | "cancelled") => {
-    repository.update((db) => ({
-      ...db,
-      bookings: db.bookings.map((b) => (b.id === id ? { ...b, status } : b)),
-    }));
+    void repository.setBookingStatus(id, status);
   };
 
   return (

@@ -101,13 +101,7 @@ const actions = {
     updateState((s) => {
       const newState = { ...s, confirmation: { reference, confirmedAt } };
       // Save into global repository
-      repository.update((db) => ({
-        ...db,
-        bookings: [
-          ...db.bookings,
-          { id: reference, createdAt: confirmedAt, status: "upcoming", state: newState },
-        ],
-      }));
+      void repository.addBooking({ id: reference, createdAt: confirmedAt, status: "upcoming", state: newState });
       return newState;
     });
   },

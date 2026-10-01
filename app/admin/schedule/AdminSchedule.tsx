@@ -8,17 +8,11 @@ export function AdminSchedule() {
   const { classes, workshops } = useDatabase();
 
   const deleteClass = (id: string) => {
-    repository.update((db) => ({
-      ...db,
-      classes: db.classes.filter((c) => c.id !== id),
-    }));
+    void repository.deleteClass(id);
   };
 
   const deleteWorkshop = (id: string) => {
-    repository.update((db) => ({
-      ...db,
-      workshops: db.workshops.filter((w) => w.id !== id),
-    }));
+    void repository.deleteWorkshop(id);
   };
 
   return (

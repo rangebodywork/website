@@ -9,10 +9,7 @@ export function BookingsList() {
   const { bookings } = useDatabase();
 
   const handleCancel = (id: string) => {
-    repository.update((db) => ({
-      ...db,
-      bookings: db.bookings.map((b) => (b.id === id ? { ...b, status: "cancelled" } : b)),
-    }));
+    void repository.setBookingStatus(id, "cancelled");
   };
 
   if (bookings.length === 0) {
