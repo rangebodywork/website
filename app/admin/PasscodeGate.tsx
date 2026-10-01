@@ -29,8 +29,16 @@ function setAuthed(authed: boolean) {
   listeners.forEach((l) => l());
 }
 
-export function signOutAdmin() {
-  setAuthed(false);
+export function SignOutButton() {
+  return (
+    <button
+      type="button"
+      onClick={() => setAuthed(false)}
+      className="flex items-center gap-2 p-2 rounded-lg hover:bg-surface-container text-on-surface-variant font-label-md text-left"
+    >
+      <Icon name="lock" className="text-lg" /> Sign out
+    </button>
+  );
 }
 
 /** Null until mounted: the server can't know the session, so it renders a neutral placeholder. */
