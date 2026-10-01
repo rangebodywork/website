@@ -45,6 +45,8 @@ export interface BookingState {
   calendarSync: boolean;
   savedClasses: string[];
   confirmation: Confirmation | null;
+  /** Booking this session was saved as; re-confirming after an edit updates it instead of adding another. */
+  bookingId: string | null;
 }
 
 /** Built from the static catalog so the default state is identical on server and client. */
@@ -86,6 +88,7 @@ export const DEFAULT_STATE: BookingState = {
   calendarSync: true,
   savedClasses: [],
   confirmation: null,
+  bookingId: null,
 };
 
 const STORAGE_KEY = "soma-studio:booking";

@@ -1,5 +1,6 @@
 import { MODALITIES, RITUALS, type Modality, type ModalityId, type Ritual, type TimeSlotId } from "./catalog";
 import { RECURRING_CLASSES, WORKSHOPS, type RecurringClass, type Workshop } from "./schedule-data";
+import type { SessionBlock } from "./booking-context";
 import type { BookingState } from "./booking-store";
 
 export type BookingStatus = "upcoming" | "completed" | "cancelled";
@@ -9,6 +10,9 @@ export interface ConfirmedBooking {
   createdAt: string;
   status: BookingStatus;
   state: BookingState;
+  /** Priced blocks at confirmation time, so later price edits don't rewrite history. */
+  blocks?: SessionBlock[];
+  totalPrice?: number;
 }
 
 export interface AppDatabase {

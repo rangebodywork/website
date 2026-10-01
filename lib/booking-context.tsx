@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
-import { priceFor, resolveDuration, type ModalityId } from "./catalog";
+import { priceFor, resolveDuration, type Modality, type ModalityId } from "./catalog";
 import { useDatabase } from "./db-context";
 import { repository } from "./repository";
 import {
@@ -20,6 +20,37 @@ export interface SessionBlock {
   duration: number;
   option?: string;
   price: number;
+}
+
+/** Enabled modalities in session order, priced from the current catalog. */
+export function sessionBlocks(state: BookingState, modalities: Record<ModalityId, Modality>): SessionBlock[] {
+  return state.sequence
+    .filter((id) => state.modalities[id]?.enabled)
+    .map((id) => {
+      const modality = modalities[id];
+      const duration = resolveDuration(modality, state.modalities[id].duration);
+      return {
+        id,
+        name: modality.name,
+        duration,
+        option: modality.options ? state.modalities[id].option : undefined,
+        price: priceFor(modality, duration),
+      };
+    });
+}
+
+/** Short human reference; regenerated on the (unlikely) collision with an existing booking. */
+function newReference(): string {
+  const taken = new Set(repository.listBookings().map((b) => b.id));
+  let reference: string;
+  do {
+    const random =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID().replace(/-/g, "")
+        : Math.random().toString(36).slice(2);
+    reference = `SOMA-${random.slice(0, 6).toUpperCase()}`;
+  } while (taken.has(reference));
+  return reference;
 }
 
 function toggleIn<T>(list: T[], value: T): T[] {
@@ -96,14 +127,29 @@ const actions = {
   toggleSavedClass(id: string) {
     updateState((s) => ({ ...s, savedClasses: toggleIn(s.savedClasses, id) }));
   },
+  /**
+   * Saves the session as a booking. A session already confirmed is a no-op
+   * (double submit); one confirmed earlier and then edited updates its own
+   * booking while that booking is still upcoming.
+   */
   confirm() {
-    const reference = `SOMA-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const s = getSnapshot();
+    if (s.confirmation) return;
+    const existing = s.bookingId
+      ? repository.listBookings().find((b) => b.id === s.bookingId && b.status === "upcoming")
+      : undefined;
+    const reference = existing?.id ?? newReference();
     const confirmedAt = new Date().toISOString();
-    updateState((s) => {
-      const newState = { ...s, confirmation: { reference, confirmedAt } };
-      // Save into global repository
-      void repository.addBooking({ id: reference, createdAt: confirmedAt, status: "upcoming", state: newState });
-      return newState;
+    const confirmed: BookingState = { ...s, bookingId: reference, confirmation: { reference, confirmedAt } };
+    const blocks = sessionBlocks(confirmed, repository.getSnapshot().modalities);
+    updateState(() => confirmed);
+    void repository.addBooking({
+      id: reference,
+      createdAt: existing?.createdAt ?? confirmedAt,
+      status: "upcoming",
+      state: confirmed,
+      blocks,
+      totalPrice: blocks.reduce((sum, b) => sum + b.price, 0),
     });
   },
   /** Starts a fresh session, keeping the client's contact details and saved classes. */
@@ -138,19 +184,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const { modalities } = useDatabase();
 
   const value = useMemo<BookingContextValue>(() => {
-    const blocks = state.sequence
-      .filter((id) => state.modalities[id]?.enabled)
-      .map((id) => {
-        const modality = modalities[id];
-        const duration = resolveDuration(modality, state.modalities[id].duration);
-        return {
-          id,
-          name: modality.name,
-          duration,
-          option: modality.options ? state.modalities[id].option : undefined,
-          price: priceFor(modality, duration),
-        };
-      });
+    const blocks = sessionBlocks(state, modalities);
     return {
       state,
       actions,
