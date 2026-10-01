@@ -39,6 +39,10 @@ Other scripts:
 - `migration.spec.ts` checks the one-time import of a pre-split confirmed booking and that malformed stored data
   is ignored.
 - `cross-tab.spec.ts` checks that an admin change in one tab updates an open builder in another, without a reload.
+- `payments.spec.ts` runs against the stub gateway. It checks that booking saves a card on file with no charge
+  and no card number stored, that cancelling more than 24 hours ahead is free, and that cancelling inside the
+  window charges the admin-set fee. It also covers the admin "Charge session" action and a declined charge
+  (test card 4000 0000 0000 0002).
 
 It runs in the locally installed Google Chrome (`channel: "chrome"`), so no browser download is needed. To use
 Playwright's bundled Chromium instead, run `npx playwright install chromium` and set `PW_CHANNEL=chromium`. Set
@@ -58,7 +62,10 @@ Playwright's bundled Chromium instead, run `npx playwright install chromium` and
   vercel --prod   # production deployment
   ```
 
-No environment variables are needed. Every route is prerendered as static content.
+No environment variables are needed to run the site: without Authorize.net keys, payments use the stub gateway
+(test mode). Pages are prerendered as static content; `/api/payments/*` are server functions. When keys arrive,
+add the `AUTHORIZE_NET_*` variables (see [Payments](#payments)) under **Project → Settings → Environment
+Variables**. Do not give them a `NEXT_PUBLIC_` prefix.
 
 ## Route map
 
@@ -72,9 +79,9 @@ from the customer navigation.
 | ----------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/`         | Modular Session Builder (`stitch_…scheduler` + `-2`, merged)         | Apply a curated ritual, or toggle modalities and pick durations and techniques. Reorder the sequence by dragging or with the arrow keys. Modality guide sheet. **Continue → `/intake`** |
 | `/intake`   | Client Intake & Session Customization (`-3`)                         | Pick a date and time slot. Tailoring sections A/B/C appear only for the selected modalities. Health record is validated; empty contact fields pre-fill from the profile. **Review & Confirm → `/review`** |
-| `/review`   | Review Your Customized Session (`-5`)                                | Itinerary, intake summary and pricing, built from your choices. **Confirm & Reserve** saves the booking and shows a confirmation with `.ics` / Google Calendar export                 |
+| `/review`   | Review Your Customized Session (`-5`)                                | Itinerary, intake summary and pricing, built from your choices. **Save card on file** (no charge) is required first, and the cancellation policy is shown. **Confirm & Reserve** saves the booking and shows a confirmation with `.ics` / Google Calendar export                 |
 | `/schedule` | Schedule (`-4`)                                                      | Group classes and workshops (as edited in the admin), with category filters, bookmarks, `.ics` export and mailto reservations                                                         |
-| `/bookings` | — (new)                                                              | My bookings, split into Upcoming and Past (past = cancelled/completed, or the date has gone by). Reschedule (date + time picker) and Cancel (asks first) for upcoming sessions      |
+| `/bookings` | — (new)                                                              | My bookings, split into Upcoming and Past (past = cancelled/completed, or the date has gone by). Reschedule (date + time picker, free) and Cancel. Cancel asks first and says whether the late-cancellation fee applies, then charges it      |
 | `/profile`  | — (new)                                                              | The client's own name, phone and emergency contact. Saved on change; used to pre-fill the next intake. Editing it never touches a confirmed booking                                   |
 
 ### Admin (`app/admin`, behind a demo passcode)
@@ -82,8 +89,9 @@ from the customer navigation.
 | Route              | Purpose                                                                                                                                                |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `/admin`           | Dashboard: counts of upcoming bookings, classes and workshops, and the next upcoming sessions sorted by date                                          |
-| `/admin/bookings`  | Bookings table (cards on mobile): filter by status, change status, read intake and health notes. Pregnancy, missing required consents and sensitivities are flagged |
+| `/admin/bookings`  | Bookings table (cards on mobile): filter by status, change status, read intake and health notes. Pregnancy, missing required consents and sensitivities are flagged. Payment status (card on file / charged / fee charged / failed) with a **Charge session** action; marking a booking *completed* charges it too |
 | `/admin/schedule`  | Add, edit and delete recurring classes and workshops. Changes show on `/schedule`                                                                      |
+| `/admin/payments`  | Cancellation-fee amount, late-cancel window (hours) and policy text, shipped as clearly marked placeholders, plus which payment gateway is active |
 | `/admin/services`  | Enable/disable each modality and edit its duration → price table and default duration. A disabled modality disappears from the builder, its rituals are hidden, and it is not priced on `/review` |
 
 How the pages connect:
@@ -164,15 +172,17 @@ Two things were taken from **variant 1** instead:
 ```
 app/                 root layout, fonts, theme
   (customer)/        /, /intake, /review, /schedule, /bookings, /profile + customer layout
-  admin/             /admin, /admin/bookings, /admin/schedule, /admin/services + passcode gate, admin nav
+  admin/             /admin, /admin/bookings, /admin/payments, /admin/schedule, /admin/services + passcode gate, admin nav
+  api/payments/      server route handlers in front of the payment gateway
 components/          SiteHeader, DesktopNav, BottomNav, SiteFooter, StickyActionBar, Icon, Avatar
   ui/                Chip, Badge, Card primitives
   builder/ intake/ review/ schedule/   screen sections
 lib/                 catalog (modalities, rituals, pricing), repository (data layer), booking store + context,
                      formatting, .ics
+  payments/          PaymentGateway interface, stub, Authorize.net skeleton, gateway selection, client helpers
 public/images/       practitioner & studio photography from the Stitch exports
 scripts/             fetch-icons.mjs (Material Symbols subset)
-docs/                original Stitch exports (unchanged)
+docs/                original Stitch exports (unchanged); payments.md (payments design note)
 ```
 
 
@@ -184,8 +194,9 @@ docs/                original Stitch exports (unchanged)
 - **Reads** go through `useDatabase()` (`lib/db-context.tsx`), a `useSyncExternalStore` hook over
   `repository.getSnapshot()`. The server snapshot is the built-in catalog with no bookings, so prerendered HTML
   and the first client render always match.
-- **Writes** go through domain methods: `addBooking`, `setBookingStatus`, `rescheduleBooking`, `upsertClass`,
-  `deleteClass`, `upsertWorkshop`, `deleteWorkshop`, `setModalityEnabled`, `setPricing`, `saveProfile`. They
+- **Writes** go through domain methods: `addBooking`, `setBookingStatus`, `rescheduleBooking`, `recordPayment`,
+  `upsertClass`, `deleteClass`, `upsertWorkshop`, `deleteWorkshop`, `setModalityEnabled`, `setPricing`,
+  `saveProfile`, `savePaymentSettings`. They
   return promises, so a real backend can implement the same interface with network calls; the
   `localStorage` version resolves immediately.
 - **Stored shape.** `soma-studio:db` is versioned (currently 2). For modalities it stores only the
@@ -200,6 +211,74 @@ docs/                original Stitch exports (unchanged)
   copied into the bookings list once, on first load.
 - The in-progress session (`lib/booking-store.ts` + `lib/booking-context.tsx`) is still a separate store under
   `soma-studio:booking`. It is per-session scratch state, not shared data.
+
+## Payments
+
+Payments go through Authorize.net, with the merchant account through Chase. **There are no test keys yet, so
+everything runs against a stub gateway.** The design, its sources and the questions for the owner are in
+[`docs/payments.md`](docs/payments.md).
+
+The business rules, and how they are built:
+
+- **Single sessions are not charged at booking.** On `/review` the customer agrees to keep a card on file and
+  saves it before **Confirm & Reserve**. Only a payment-profile reference and brand/last4 are kept on the
+  booking (`booking.payment`), never the card number. The studio charges the booking total later, from
+  `/admin/bookings` (**Charge session**, or by marking the booking *completed*).
+- **Cancelling inside the window** (default 24 hours before start) charges the late-cancellation fee to the card
+  on file. Cancelling earlier is free, and the cancel dialog says which case applies before confirming.
+- **Rescheduling is free** for now.
+- **Packages** (charged immediately) are not built yet. `PaymentGateway.purchase()` exists for them.
+- **Policy wording** is a clearly marked placeholder that the admin edits on `/admin/payments`. It shows on
+  `/review` and on the confirmation.
+
+How it fits together:
+
+- `lib/payments/gateway.ts` holds the typed, server-side `PaymentGateway` interface: `createCustomerProfile`,
+  `getHostedCardForm`, `getStoredCard`, `chargeStoredCard`, `purchase`, `voidTransaction` and `refund`.
+- `lib/payments/stub-gateway.ts` holds `StubPaymentGateway`, which is stateless, predictable and logs as
+  `[payments:stub]`. Test cards: 4111 1111 1111 1111 approves, and 4000 0000 0000 0002 saves but is declined
+  when charged. Any amount ending in `.13` is also declined.
+- `lib/payments/authorize-net-gateway.ts` holds `AuthorizeNetGateway`, a skeleton over the JSON API (no SDK).
+  Each method throws `PaymentGatewayNotConfiguredError` and has a TODO linking to the relevant doc section.
+- `lib/payments/index.ts`: `getPaymentGateway()` uses Authorize.net when the login ID and transaction key are
+  set, and the stub otherwise.
+- `app/api/payments/*` holds the route handlers the browser calls: `card-form`, `stored-card`, `charge` and
+  `status`, plus `stub/hosted-form`, which stands in for the hosted card page and returns 404 when a real
+  gateway is configured. The browser never talks to Authorize.net directly.
+- `lib/payments/client.ts` holds browser helpers that call those routes and record each attempt through
+  `repository.recordPayment`. `lib/payments/policy.ts` holds the late-cancel rule and the placeholder settings.
+
+### Environment variables
+
+Copy `.env.example` to `.env.local`. Real `.env*` files are git-ignored. All of these are server-only, so never
+give them a `NEXT_PUBLIC_` prefix.
+
+| Variable | Purpose |
+| --- | --- |
+| `AUTHORIZE_NET_API_LOGIN_ID` | API Login ID. Leave it empty to use the stub. |
+| `AUTHORIZE_NET_TRANSACTION_KEY` | Transaction Key. Leave it empty to use the stub. |
+| `AUTHORIZE_NET_SIGNATURE_KEY` | Verifies webhook signatures (`X-ANET-Signature`). Not used until webhooks exist. |
+| `AUTHORIZE_NET_ENV` | `sandbox` (the default) or `production`. |
+
+Setting the keys today switches to the skeleton, which answers 503 ("Payments are not set up yet") until
+`AuthorizeNetGateway` is implemented.
+
+### Open questions for the owner
+
+- **Reschedules:** should rescheduling inside the 24-hour window count as a late cancellation and charge the
+  fee? For now it is always free.
+- **Final policy wording, fee amount and window.** The site ships placeholders, with a $50 fee and 24 hours.
+- **No-shows:** charge the full session, the cancellation fee, or nothing?
+- **A late-cancel fee that is declined:** the booking is still cancelled and the failure is recorded for
+  follow-up. Is that right, or should cancelling be blocked?
+- **Promo and gift codes** are saved but not deducted from the charged amount. How should they apply?
+- **Authorize.net and Chase details:** sandbox and production keys, CIM enabled on the account, accepted card
+  brands, and AVS/CVV requirements. See `docs/payments.md`.
+
+**Trust caveat (demo):** bookings live in the browser's `localStorage`, so the browser sends the amount to
+charge, and `/admin` is not really protected. Before taking real payments, bookings and payment records must
+move to a server-side store. The charge routes must then work out the amount and cancel timing from that
+store, and sit behind real admin authentication.
 
 ## Admin passcode — not real security
 
