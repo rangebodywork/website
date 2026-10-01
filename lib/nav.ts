@@ -11,10 +11,11 @@ export const ROUTES = {
 
 /** Primary navigation (bottom bar on mobile, header links on desktop). */
 export const PRIMARY_NAV: Array<{ href: string; label: string; icon: IconName; match: string[] }> = [
-  { href: ROUTES.builder, label: "Practices", icon: "self_improvement", match: [ROUTES.builder] },
+  // Intake and review are steps of building a session, so they keep "Practices" active.
+  { href: ROUTES.builder, label: "Practices", icon: "self_improvement", match: [ROUTES.builder, ROUTES.intake, ROUTES.review] },
   { href: ROUTES.schedule, label: "Schedule", icon: "event", match: [ROUTES.schedule] },
-  { href: ROUTES.bookings, label: "My bookings", icon: "hourglass_empty", match: [ROUTES.bookings, ROUTES.review] },
-  { href: ROUTES.profile, label: "Profile", icon: "person", match: [ROUTES.profile, ROUTES.intake] },
+  { href: ROUTES.bookings, label: "My bookings", icon: "hourglass_empty", match: [ROUTES.bookings] },
+  { href: ROUTES.profile, label: "Profile", icon: "person", match: [ROUTES.profile] },
 ];
 
 export const STUDIO = {
