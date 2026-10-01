@@ -1,6 +1,6 @@
 import { MODALITIES, RITUALS, type Modality, type ModalityId, type Ritual, type TimeSlotId } from "./catalog";
 import { RECURRING_CLASSES, WORKSHOPS, type RecurringClass, type Workshop } from "./schedule-data";
-import { BookingState } from "./booking-store";
+import type { BookingState } from "./booking-store";
 
 export type BookingStatus = "upcoming" | "completed" | "cancelled";
 
