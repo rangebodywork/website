@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TIME_SLOTS, type TimeSlotId } from "@/lib/catalog";
 import { sessionBlocks, useBooking } from "@/lib/booking-context";
 import { useDatabase } from "@/lib/db-context";
@@ -82,7 +82,24 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
   const { modalities } = useDatabase();
   const { actions } = useBooking();
   const [mode, setMode] = useState<"view" | "cancel" | "reschedule">("view");
+  const cancelTrigger = useRef<HTMLButtonElement>(null);
+  const keepButton = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
   const { date, slot } = booking.state.intake;
+
+  // Focus moves into the cancel dialog (onto the safe choice) and back to its trigger on dismiss.
+  useEffect(() => {
+    if (mode === "cancel") keepButton.current?.focus();
+    else if (mode === "view" && restoreFocus.current) {
+      restoreFocus.current = false;
+      cancelTrigger.current?.focus();
+    }
+  }, [mode]);
+
+  const dismissCancel = () => {
+    restoreFocus.current = true;
+    setMode("view");
+  };
   const blocks = booking.blocks ?? sessionBlocks(booking.state, modalities);
   const total = booking.totalPrice ?? blocks.reduce((sum, b) => sum + b.price, 0);
   const slotInfo = TIME_SLOTS.find((s) => s.id === slot) ?? TIME_SLOTS[0];
@@ -116,6 +133,7 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
             Reschedule
           </button>
           <button
+            ref={cancelTrigger}
             type="button"
             onClick={() => setMode("cancel")}
             className="rounded-lg border border-error/50 px-4 py-2 text-error hover:bg-error/10"
@@ -126,7 +144,12 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
       )}
 
       {editable && mode === "cancel" && (
-        <div role="alertdialog" aria-labelledby={`cancel-${booking.id}`} className="mt-4 rounded-lg bg-error/5 p-4">
+        <div
+          role="alertdialog"
+          aria-labelledby={`cancel-${booking.id}`}
+          onKeyDown={(e) => e.key === "Escape" && dismissCancel()}
+          className="mt-4 rounded-lg bg-error/5 p-4"
+        >
           <p id={`cancel-${booking.id}`} className="text-body-md text-on-surface">
             Cancel this session? The studio will release your time slot.
           </p>
@@ -142,8 +165,9 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
               Yes, cancel booking
             </button>
             <button
+              ref={keepButton}
               type="button"
-              onClick={() => setMode("view")}
+              onClick={dismissCancel}
               className="rounded-lg border border-outline-variant px-4 py-2 text-on-surface"
             >
               Keep booking

@@ -106,10 +106,10 @@ function PricingEditor({ modality, onClose }: { modality: Modality; onClose: () 
       <table className="w-full max-w-md text-body-sm">
         <thead>
           <tr className="text-left text-label-sm text-on-surface-variant">
-            <th className="pb-1 font-normal">Minutes</th>
-            <th className="pb-1 font-normal">Price (USD)</th>
-            <th className="pb-1 font-normal">Default</th>
-            <th className="pb-1 font-normal">
+            <th scope="col" className="pb-1 font-normal">Minutes</th>
+            <th scope="col" className="pb-1 font-normal">Price (USD)</th>
+            <th scope="col" className="pb-1 font-normal">Default</th>
+            <th scope="col" className="pb-1 font-normal">
               <span className="sr-only">Remove</span>
             </th>
           </tr>

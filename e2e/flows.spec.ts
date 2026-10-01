@@ -121,6 +121,14 @@ test("customer and admin flows", async ({ page }) => {
   });
 
   await test.step("cancel asks first, then moves the booking to Past", async () => {
+    // Focus enters the dialog and returns to the trigger on dismiss (Escape or "Keep booking").
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Keep booking" })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeFocused();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await page.getByRole("button", { name: "Keep booking" }).click();
+    await expect(page.getByRole("button", { name: "Cancel", exact: true })).toBeFocused();
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.getByRole("button", { name: "Yes, cancel booking" })).toBeVisible();
     expect((await readDb(page)).bookings[0].status).toBe("upcoming");
