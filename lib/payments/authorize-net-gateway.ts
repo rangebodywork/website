@@ -54,7 +54,7 @@ export class AuthorizeNetGateway implements PaymentGateway {
 
   async getHostedCardForm(customerProfileId: string): Promise<HostedCardForm> {
     // TODO(getHostedProfilePageRequest): request a token with hostedProfileSettings
-    //   (hostedProfileIFrameCommunicatorUrl, hostedProfileCardCodeRequired, hostedProfileSaveButtonText),
+    //   (hostedProfileValidationMode "liveMode", hostedProfileIFrameCommunicatorUrl, hostedProfileCardCodeRequired, hostedProfileSaveButtonText),
     //   then return { token, formUrl: this.endpoints.hosted }. "Accept Customer" section of
     //   https://developer.authorize.net/api/reference/features/customer-profiles.html
     void customerProfileId;
@@ -72,7 +72,9 @@ export class AuthorizeNetGateway implements PaymentGateway {
   async chargeStoredCard(charge: StoredCardCharge): Promise<TransactionResult> {
     // TODO(createTransactionRequest): transactionType "authCaptureTransaction", amount,
     //   profile { customerProfileId, paymentProfile { paymentProfileId } }, order { invoiceNumber: bookingId },
-    //   processingOptions { isSubsequentAuth: true }, subsequentAuthInformation { reason: "delayedCharge" | "noShow" }.
+    //   refId + transactionSettings duplicateWindow (de-dup), merchant-initiated stored-credential flags:
+    //   processingOptions { isSubsequentAuth / isStoredCredentials per the card-on-file guide },
+    //   subsequentAuthInformation { reason: "delayedCharge" | "noShow", originalNetworkTransId? }. See docs/payments.md §6.
     //   Map responseCode 1 -> ok, 2 -> declined, else error.
     //   https://developer.authorize.net/api/reference/index.html#payment-transactions-charge-a-customer-profile
     //   https://developer.authorize.net/api/reference/features/card-on-file.html
