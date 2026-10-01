@@ -1,7 +1,7 @@
 import { MODALITIES, RITUALS, type Modality, type ModalityId, type Ritual, type TimeSlotId } from "./catalog";
 import { RECURRING_CLASSES, WORKSHOPS, type RecurringClass, type Workshop } from "./schedule-data";
 import type { SessionBlock } from "./booking-context";
-import type { BookingState } from "./booking-store";
+import { STORAGE_KEY as BOOKING_STORAGE_KEY, parseBookingState, type BookingState } from "./booking-store";
 
 /** The client's own contact record, kept apart from any one session's intake. */
 export interface Profile {
@@ -76,6 +76,7 @@ export const DEFAULT_DB: AppDatabase = {
 };
 
 const STORAGE_KEY = "soma-studio:db";
+const LEGACY_MIGRATED_KEY = "soma-studio:db:legacy-booking-migrated";
 
 function upsertById<T extends { id: string }>(list: T[], item: T): T[] {
   return list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item];
@@ -203,6 +204,37 @@ function serialize(db: AppDatabase): string {
   return JSON.stringify(persisted);
 }
 
+/**
+ * Before My bookings existed, a confirmed session lived only in the in-progress
+ * booking state. Copy it into the bookings list once, so it isn't lost.
+ */
+function migrateLegacyBooking(db: AppDatabase): AppDatabase {
+  if (window.localStorage.getItem(LEGACY_MIGRATED_KEY)) return db;
+  window.localStorage.setItem(LEGACY_MIGRATED_KEY, "1");
+  const raw = window.localStorage.getItem(BOOKING_STORAGE_KEY);
+  if (!raw) return db;
+  const state = parseBookingState(raw);
+  const confirmation = state.confirmation;
+  if (!confirmation || db.bookings.some((b) => b.id === confirmation.reference)) return db;
+  const { fullName, phone, emergencyContact } = state.intake;
+  const migrated: AppDatabase = {
+    ...db,
+    bookings: [
+      ...db.bookings,
+      {
+        id: confirmation.reference,
+        createdAt: confirmation.confirmedAt,
+        status: "upcoming",
+        state: { ...state, bookingId: confirmation.reference },
+        profile: { fullName, phone, emergencyContact },
+      },
+    ],
+    profile: db.profile.fullName ? db.profile : { fullName, phone, emergencyContact },
+  };
+  window.localStorage.setItem(STORAGE_KEY, serialize(migrated));
+  return migrated;
+}
+
 export function createLocalStorageRepository(): Repository {
   let current: AppDatabase | null = null;
   const listeners = new Set<() => void>();
@@ -214,6 +246,11 @@ export function createLocalStorageRepository(): Repository {
       current = parse(window.localStorage.getItem(STORAGE_KEY));
     } catch {
       current = DEFAULT_DB;
+    }
+    try {
+      current = migrateLegacyBooking(current);
+    } catch {
+      // Storage unavailable: nothing to migrate from.
     }
     return current;
   }

@@ -91,12 +91,12 @@ export const DEFAULT_STATE: BookingState = {
   bookingId: null,
 };
 
-const STORAGE_KEY = "soma-studio:booking";
+export const STORAGE_KEY = "soma-studio:booking";
 
 let current: BookingState | null = null;
 const listeners = new Set<() => void>();
 
-function parse(raw: string | null): BookingState {
+export function parseBookingState(raw: string | null): BookingState {
   if (!raw) return DEFAULT_STATE;
   try {
     const data = JSON.parse(raw) as Partial<BookingState>;
@@ -119,7 +119,7 @@ function parse(raw: string | null): BookingState {
 function read(): BookingState {
   if (current) return current;
   try {
-    current = parse(window.localStorage.getItem(STORAGE_KEY));
+    current = parseBookingState(window.localStorage.getItem(STORAGE_KEY));
   } catch {
     current = DEFAULT_STATE;
   }
@@ -138,7 +138,7 @@ export function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   const onStorage = (event: StorageEvent) => {
     if (event.key !== STORAGE_KEY) return;
-    current = parse(event.newValue);
+    current = parseBookingState(event.newValue);
     listener();
   };
   window.addEventListener("storage", onStorage);
