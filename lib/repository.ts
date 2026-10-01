@@ -3,6 +3,15 @@ import { RECURRING_CLASSES, WORKSHOPS, type RecurringClass, type Workshop } from
 import type { SessionBlock } from "./booking-context";
 import type { BookingState } from "./booking-store";
 
+/** The client's own contact record, kept apart from any one session's intake. */
+export interface Profile {
+  fullName: string;
+  phone: string;
+  emergencyContact: string;
+}
+
+export const EMPTY_PROFILE: Profile = { fullName: "", phone: "", emergencyContact: "" };
+
 export type BookingStatus = "upcoming" | "completed" | "cancelled";
 
 export interface ConfirmedBooking {
@@ -13,6 +22,8 @@ export interface ConfirmedBooking {
   /** Priced blocks at confirmation time, so later price edits don't rewrite history. */
   blocks?: SessionBlock[];
   totalPrice?: number;
+  /** Contact details copied at confirmation time. */
+  profile?: Profile;
 }
 
 export interface AppDatabase {
@@ -22,6 +33,7 @@ export interface AppDatabase {
   classes: RecurringClass[];
   workshops: Workshop[];
   bookings: ConfirmedBooking[];
+  profile: Profile;
 }
 
 /**
@@ -48,6 +60,9 @@ export interface Repository {
 
   setModalityEnabled(id: ModalityId, enabled: boolean): Promise<void>;
   setPricing(id: ModalityId, pricing: Record<number, number>, defaultDuration: number): Promise<void>;
+
+  getProfile(): Profile;
+  saveProfile(profile: Profile): Promise<void>;
 }
 
 export const DEFAULT_DB: AppDatabase = {
@@ -57,6 +72,7 @@ export const DEFAULT_DB: AppDatabase = {
   classes: RECURRING_CLASSES,
   workshops: WORKSHOPS,
   bookings: [],
+  profile: EMPTY_PROFILE,
 };
 
 const STORAGE_KEY = "soma-studio:db";
@@ -82,6 +98,7 @@ interface PersistedDatabase {
   classes: RecurringClass[];
   workshops: Workshop[];
   bookings: ConfirmedBooking[];
+  profile: Profile;
 }
 
 const BOOKING_STATUSES: BookingStatus[] = ["upcoming", "completed", "cancelled"];
@@ -160,6 +177,9 @@ function parse(raw: string | null): AppDatabase {
       classes: parseList(data.classes, RECURRING_CLASSES, isClass),
       workshops: parseList(data.workshops, WORKSHOPS, isWorkshop),
       bookings: parseList(data.bookings, [], isBooking),
+      profile: isRecord(data.profile) && hasStrings(data.profile, ["fullName", "phone", "emergencyContact"])
+        ? (data.profile as unknown as Profile)
+        : EMPTY_PROFILE,
     };
   } catch {
     return DEFAULT_DB;
@@ -178,6 +198,7 @@ function serialize(db: AppDatabase): string {
     classes: db.classes,
     workshops: db.workshops,
     bookings: db.bookings,
+    profile: db.profile,
   };
   return JSON.stringify(persisted);
 }
@@ -248,6 +269,9 @@ export function createLocalStorageRepository(): Repository {
 
     setModalityEnabled: (id, enabled) => patchModality(id, { disabled: !enabled }),
     setPricing: (id, pricing, defaultDuration) => patchModality(id, { pricing, defaultDuration }),
+
+    getProfile: () => read().profile,
+    saveProfile: (profile) => write((db) => ({ ...db, profile })),
   };
 }
 

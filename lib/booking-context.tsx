@@ -142,7 +142,11 @@ const actions = {
     const confirmedAt = new Date().toISOString();
     const confirmed: BookingState = { ...s, bookingId: reference, confirmation: { reference, confirmedAt } };
     const blocks = sessionBlocks(confirmed, repository.getSnapshot().modalities);
+    const { fullName, phone, emergencyContact } = confirmed.intake;
+    const profile = { fullName, phone, emergencyContact };
     updateState(() => confirmed);
+    // A first booking seeds the profile; afterwards the profile page owns it.
+    if (!repository.getProfile().fullName) void repository.saveProfile(profile);
     void repository.addBooking({
       id: reference,
       createdAt: existing?.createdAt ?? confirmedAt,
@@ -150,6 +154,7 @@ const actions = {
       state: confirmed,
       blocks,
       totalPrice: blocks.reduce((sum, b) => sum + b.price, 0),
+      profile,
     });
   },
   /** Starts a fresh session, keeping the client's contact details and saved classes. */
