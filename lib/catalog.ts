@@ -246,16 +246,19 @@ export const LIFESTYLE_TOPICS = [
 export const HEALTH_CONSENTS = [
   {
     id: "noAcuteIllness",
+    label: "No acute illness",
     required: true,
     text: "I am not currently experiencing acute fever, contagious illness, or unmanaged circulatory thrombosis.",
   },
   {
     id: "pregnant",
+    label: "Pregnant / may be pregnant",
     required: false,
     text: "I am currently pregnant or suspect I may be pregnant (practitioner requires modified side-lying bolster protocols).",
   },
   {
     id: "bodyworkConsent",
+    label: "Consents to bodywork",
     required: true,
     text: "I consent to somatic bodywork and understand this practice supports nervous regulation and does not replace medical diagnostics.",
   },
