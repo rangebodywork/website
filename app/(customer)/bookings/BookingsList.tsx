@@ -163,11 +163,13 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
             Cancel this session? The studio will release your time slot.
           </p>
           <p className="mt-2 text-body-sm text-on-surface" data-testid="cancel-fee-notice">
-            {!quote?.late
-              ? "No cancellation fee applies: you are cancelling outside the late-cancellation window."
-              : quote.chargeable
-                ? `This is within ${paymentSettings.cancellationWindowHours} hours of your session, so a ${formatPrice(quote.fee, true)} cancellation fee will be charged to ${booking.payment!.card.brand} ending ${booking.payment!.card.last4}.`
-                : `This is within ${paymentSettings.cancellationWindowHours} hours of your session, so a ${formatPrice(quote.fee, true)} cancellation fee applies. The studio will contact you about payment.`}
+            {quote?.alreadyPaid
+              ? "This booking has already been charged, so no cancellation fee applies."
+              : !quote?.late
+                ? "No cancellation fee applies: you are cancelling outside the late-cancellation window."
+                : quote.chargeable
+                  ? `This is within ${paymentSettings.cancellationWindowHours} hours of your session, so a ${formatPrice(quote.fee, true)} cancellation fee will be charged to ${booking.payment!.card.brand} ending ${booking.payment!.card.last4}.`
+                  : `This is within ${paymentSettings.cancellationWindowHours} hours of your session, so a ${formatPrice(quote.fee, true)} cancellation fee applies. The studio will contact you about payment.`}
           </p>
           <div className="mt-3 flex gap-2">
             <button

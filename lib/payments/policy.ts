@@ -78,8 +78,10 @@ export interface CancellationQuote {
   /** Inside the late-cancel window. */
   late: boolean;
   fee: number;
-  /** Whether the fee can be charged (there is a card on file). */
+  /** Whether the fee can be charged: there is a card on file and nothing has been charged to it yet. */
   chargeable: boolean;
+  /** The session or a fee was already charged, so no (further) fee is taken. */
+  alreadyPaid: boolean;
 }
 
 export function cancellationQuote(
@@ -88,10 +90,12 @@ export function cancellationQuote(
   settings: PaymentSettings,
   now: Date = new Date(),
 ): CancellationQuote {
+  const alreadyPaid = payment?.status === "charged" || payment?.status === "fee-charged";
   const start = sessionStart(intake);
   const late =
+    !alreadyPaid &&
     settings.cancellationFee > 0 &&
     start !== null &&
     start.getTime() - now.getTime() < settings.cancellationWindowHours * 60 * 60 * 1000;
-  return { late, fee: late ? settings.cancellationFee : 0, chargeable: late && Boolean(payment) };
+  return { late, fee: late ? settings.cancellationFee : 0, chargeable: late && Boolean(payment), alreadyPaid };
 }
