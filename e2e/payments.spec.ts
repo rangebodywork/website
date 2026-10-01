@@ -9,6 +9,7 @@ import { DECLINE_CARD, TEST_CARD, bodyText, dateFromToday, go, readDb, saveTestC
 interface Booking {
   id: string;
   status: string;
+  state: { intake: { date: string | null; slot: string } };
   totalPrice: number;
   payment?: {
     status: string;
@@ -215,4 +216,130 @@ test("a declined charge is recorded as failed and can be retried", async ({ page
 
   await go(page, "/bookings");
   await expect(page.getByTestId("payment-line")).toContainText("did not go through");
+});
+
+async function adminRow(page: Page, bookingId: string) {
+  await go(page, "/admin/bookings");
+  if (await page.getByLabel("Admin passcode").isVisible()) await signIn(page);
+  return page.locator("table tbody tr", { hasText: bookingId });
+}
+
+async function chargeSessionAsAdmin(page: Page, bookingId: string) {
+  const row = await adminRow(page, bookingId);
+  await row.getByRole("button", { name: /^Charge session/ }).click();
+  await expect(row.getByText("Charged", { exact: true })).toBeVisible();
+}
+
+test("the late-cancel window boundary: exactly 24 hours ahead is free, one second later is not", async ({ page }) => {
+  await bookWithCard(page);
+  // A morning (9:30) session on a fixed day; the browser clock is pinned relative to it.
+  await setSessionTime(page, "2027-03-10", "morning");
+  await page.clock.setFixedTime(new Date(2027, 2, 9, 9, 30, 0));
+  await go(page, "/bookings");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByTestId("cancel-fee-notice")).toContainText("No cancellation fee applies");
+  await page.getByRole("button", { name: "Keep booking" }).click();
+
+  await page.clock.setFixedTime(new Date(2027, 2, 9, 9, 30, 1));
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByTestId("cancel-fee-notice")).toContainText("a $50.00 cancellation fee will be charged");
+  await page.getByRole("button", { name: "Cancel and pay $50.00 fee" }).click();
+  await expect.poll(async () => (await onlyBooking(page)).payment!.status).toBe("fee-charged");
+});
+
+test("rescheduling inside the window is free", async ({ page }) => {
+  await bookWithCard(page);
+  await setSessionTime(page, await dateFromToday(page, 0), "evening");
+  const charges = trackCharges(page);
+  await go(page, "/bookings");
+  const target = await dateFromToday(page, 9);
+  await page.getByRole("button", { name: "Reschedule" }).click();
+  await page.getByLabel("New date").fill(target);
+  await page.getByRole("button", { name: "Save new time" }).click();
+  await expect.poll(async () => (await onlyBooking(page)).state.intake.date).toBe(target);
+  expect((await onlyBooking(page)).payment).toMatchObject({ status: "card-on-file", transactions: [] });
+  expect(charges).toEqual([]);
+});
+
+test("cancelling after the session was charged takes no fee", async ({ page }) => {
+  const booked = await bookWithCard(page);
+  await chargeSessionAsAdmin(page, booked.id);
+  await setSessionTime(page, await dateFromToday(page, 0), "evening");
+  const charges = trackCharges(page);
+  await go(page, "/bookings");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByTestId("cancel-fee-notice")).toHaveText(
+    "This booking has already been charged, so no cancellation fee applies.",
+  );
+  await page.getByRole("button", { name: "Yes, cancel booking" }).click();
+  await expect.poll(async () => (await onlyBooking(page)).status).toBe("cancelled");
+  const booking = await onlyBooking(page);
+  expect(booking.payment!.status).toBe("charged");
+  expect(booking.payment!.transactions).toHaveLength(1);
+  expect(charges).toEqual([]);
+});
+
+test("re-confirming with a different card after a charge keeps the history and never charges twice", async ({ page }) => {
+  const booked = await bookWithCard(page);
+  await chargeSessionAsAdmin(page, booked.id);
+
+  await go(page, "/intake");
+  await page.locator("#client-phone").fill("555 666 7777");
+  await go(page, "/review");
+  await page.getByRole("button", { name: "Use a different card" }).click();
+  await saveTestCard(page, "5555 5555 5555 4444");
+  await page.getByRole("button", { name: /Confirm & Reserve/ }).click();
+  await expect(page.getByText(/Reference SOMA-/).first()).toBeVisible();
+
+  const booking = await onlyBooking(page);
+  expect(booking.id).toBe(booked.id);
+  expect(booking.payment).toMatchObject({ status: "charged", card: { brand: "Mastercard", last4: "4444" } });
+  expect(booking.payment!.transactions).toEqual([expect.objectContaining({ kind: "session", ok: true })]);
+
+  const charges = trackCharges(page);
+  const row = await adminRow(page, booked.id);
+  await expect(row.getByText("Charged", { exact: true })).toBeVisible();
+  await expect(row.getByRole("button", { name: /^Charge session/ })).toHaveCount(0);
+  await row.getByRole("combobox", { name: /^Status for/ }).selectOption("completed");
+  await expect.poll(async () => (await onlyBooking(page)).status).toBe("completed");
+  expect((await onlyBooking(page)).payment!.transactions).toHaveLength(1);
+  expect(charges).toEqual([]);
+});
+
+test("a declined late-cancel fee can be retried by the admin", async ({ page }) => {
+  const booked = await bookWithCard(page);
+  await setSessionTime(page, await dateFromToday(page, 0), "evening");
+
+  // The first fee attempt is declined (a transient issuer decline); later attempts reach the stub.
+  let declines = 1;
+  await page.route("**/api/payments/charge", async (route) => {
+    if (declines-- > 0) {
+      await route.fulfill({ json: { ok: false, code: "declined", message: "Insufficient funds (simulated)" } });
+    } else {
+      await route.continue();
+    }
+  });
+
+  await go(page, "/bookings");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("button", { name: "Cancel and pay $50.00 fee" }).click();
+  await expect.poll(async () => (await onlyBooking(page)).status).toBe("cancelled");
+  expect((await onlyBooking(page)).payment).toMatchObject({
+    status: "failed",
+    transactions: [expect.objectContaining({ kind: "late-cancel-fee", amount: 50, ok: false })],
+  });
+
+  const row = await adminRow(page, booked.id);
+  await expect(row.getByText("Failed", { exact: true })).toBeVisible();
+  await expect(row.getByRole("button", { name: /^Charge session/ })).toHaveCount(0);
+  await row.getByRole("button", { name: "Retry fee $50.00" }).click();
+  await expect(row.getByText("Fee charged", { exact: true })).toBeVisible();
+  await expect(row.getByRole("button", { name: /^Retry fee/ })).toHaveCount(0);
+
+  const booking = await onlyBooking(page);
+  expect(booking.payment!.status).toBe("fee-charged");
+  expect(booking.payment!.transactions.map((t) => [t.kind, t.ok])).toEqual([
+    ["late-cancel-fee", false],
+    ["late-cancel-fee", true],
+  ]);
 });

@@ -42,7 +42,9 @@ Other scripts:
 - `payments.spec.ts` runs against the stub gateway. It checks that booking saves a card on file with no charge
   and no card number stored, that cancelling more than 24 hours ahead is free, and that cancelling inside the
   window charges the admin-set fee. It also covers the admin "Charge session" action and a declined charge
-  (test card 4000 0000 0000 0002).
+  (test card 4000 0000 0000 0002). Further cases: the exact 24-hour boundary (with a pinned clock), free
+  reschedules, no fee once the session has been charged, re-confirming with a new card without charging twice,
+  and an admin retrying a declined late-cancel fee.
 
 It runs in the locally installed Google Chrome (`channel: "chrome"`), so no browser download is needed. To use
 Playwright's bundled Chromium instead, run `npx playwright install chromium` and set `PW_CHANNEL=chromium`. Set
