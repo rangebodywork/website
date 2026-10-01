@@ -16,7 +16,7 @@ const CATEGORIES = SCHEDULE_FILTERS.filter((f) => f.id !== "all") as Array<{ id:
 
 function newId(title: string): string {
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item";
-  return `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+  return `${slug}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
 const EMPTY_CLASS: RecurringClass = {
