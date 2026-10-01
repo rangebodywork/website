@@ -26,6 +26,22 @@ Other scripts:
 | `npm start`     | Serve the production build (`PORT=4000 npm start` to change the port) |
 | `npm run lint`  | ESLint (`eslint-config-next` core-web-vitals + TypeScript)            |
 | `npm run icons` | Re-download the Material Symbols subset (see [Icons](#icons))         |
+| `npm run test:e2e` | Build, start the production server on port 4300 and run the Playwright suite in `e2e/` |
+
+### End-to-end tests
+
+`e2e/` holds a Playwright suite (`@playwright/test`, dev-only) that drives the production build:
+
+- `flows.spec.ts` covers one customer + admin journey. The admin edits a price and disables a service, and the
+  builder and review totals follow. Intake → review → confirm saves one booking. Editing the profile or
+  re-confirming adds no duplicate. Reschedule and cancel work on My bookings. Admin add/edit of a class and a
+  workshop shows on `/schedule`. A signed-in `/admin` reload logs no hydration errors. Sign-out works.
+- `migration.spec.ts` checks the one-time import of a pre-split confirmed booking and that malformed stored data
+  is ignored.
+
+It runs in the locally installed Google Chrome (`channel: "chrome"`), so no browser download is needed. To use
+Playwright's bundled Chromium instead, run `npx playwright install chromium` and set `PW_CHANNEL=chromium`. Set
+`E2E_PORT` to use a port other than 4300.
 
 ## Deploy to Vercel
 

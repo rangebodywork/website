@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:e2e": "next build && playwright test",
     "icons": "node scripts/fetch-icons.mjs"
   },
   "dependencies": {
@@ -15,6 +16,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
