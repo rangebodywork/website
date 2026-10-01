@@ -264,8 +264,22 @@ export function createLocalStorageRepository(): Repository {
         // Storage can be unavailable (private mode, quota); data still lives in memory.
       }
     }
-    listeners.forEach((l) => l());
+    notify();
     return Promise.resolve();
+  }
+
+  function notify() {
+    listeners.forEach((l) => l());
+  }
+
+  /**
+   * One `storage` handler per repository, attached while anyone is subscribed: another tab's write
+   * re-parses the snapshot once, then every subscriber is notified.
+   */
+  function onStorage(event: StorageEvent) {
+    if (event.key !== STORAGE_KEY) return;
+    current = parse(event.newValue);
+    notify();
   }
 
   function patchBooking(id: string, patch: (b: ConfirmedBooking) => ConfirmedBooking) {
@@ -280,16 +294,11 @@ export function createLocalStorageRepository(): Repository {
     getSnapshot: () => read(),
     getServerSnapshot: () => DEFAULT_DB,
     subscribe: (listener) => {
+      if (listeners.size === 0) window.addEventListener("storage", onStorage);
       listeners.add(listener);
-      const onStorage = (event: StorageEvent) => {
-        if (event.key !== STORAGE_KEY) return;
-        current = parse(event.newValue);
-        listener();
-      };
-      window.addEventListener("storage", onStorage);
       return () => {
         listeners.delete(listener);
-        window.removeEventListener("storage", onStorage);
+        if (listeners.size === 0) window.removeEventListener("storage", onStorage);
       };
     },
 

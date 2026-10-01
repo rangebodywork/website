@@ -38,6 +38,7 @@ Other scripts:
   workshop shows on `/schedule`. A signed-in `/admin` reload logs no hydration errors. Sign-out works.
 - `migration.spec.ts` checks the one-time import of a pre-split confirmed booking and that malformed stored data
   is ignored.
+- `cross-tab.spec.ts` checks that an admin change in one tab updates an open builder in another, without a reload.
 
 It runs in the locally installed Google Chrome (`channel: "chrome"`), so no browser download is needed. To use
 Playwright's bundled Chromium instead, run `npx playwright install chromium` and set `PW_CHANNEL=chromium`. Set
