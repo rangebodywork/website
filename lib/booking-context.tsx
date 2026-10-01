@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
-import { priceFor, resolveDuration, type Modality, type ModalityId } from "./catalog";
+import { priceFor, resolveDuration, type Modality, type ModalityId, type Ritual } from "./catalog";
 import { useDatabase } from "./db-context";
 import { repository } from "./repository";
 import {
@@ -22,10 +22,10 @@ export interface SessionBlock {
   price: number;
 }
 
-/** Enabled modalities in session order, priced from the current catalog. */
+/** Enabled modalities in session order, priced from the current catalog. Services the studio disabled drop out. */
 export function sessionBlocks(state: BookingState, modalities: Record<ModalityId, Modality>): SessionBlock[] {
   return state.sequence
-    .filter((id) => state.modalities[id]?.enabled)
+    .filter((id) => state.modalities[id]?.enabled && !modalities[id].disabled)
     .map((id) => {
       const modality = modalities[id];
       const duration = resolveDuration(modality, state.modalities[id].duration);
@@ -53,6 +53,15 @@ function newReference(): string {
   return reference;
 }
 
+/** A ritual is bookable only while every modality in it is offered. */
+export function ritualAvailable(ritual: Ritual, modalities: Record<ModalityId, Modality>): boolean {
+  return ritual.blocks.every((b) => !modalities[b.id].disabled);
+}
+
+function isDisabled(id: ModalityId): boolean {
+  return Boolean(repository.getSnapshot().modalities[id].disabled);
+}
+
 function toggleIn<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
 }
@@ -64,6 +73,7 @@ function editSession(updater: (state: BookingState) => BookingState) {
 
 const actions = {
   toggleModality(id: ModalityId) {
+    if (isDisabled(id) && !getSnapshot().modalities[id].enabled) return;
     editSession((s) => {
       const enabled = !s.modalities[id].enabled;
       return {
@@ -76,6 +86,7 @@ const actions = {
   },
   /** Enables the modality (if needed) and applies duration / option. */
   configureModality(id: ModalityId, patch: { duration?: number; option?: string }) {
+    if (isDisabled(id)) return;
     editSession((s) => ({
       ...s,
       appliedRitual: null,
@@ -84,8 +95,9 @@ const actions = {
     }));
   },
   applyRitual(ritualId: string) {
-    const ritual = repository.getSnapshot().rituals.find((r) => r.id === ritualId);
-    if (!ritual) return;
+    const db = repository.getSnapshot();
+    const ritual = db.rituals.find((r) => r.id === ritualId);
+    if (!ritual || !ritualAvailable(ritual, db.modalities)) return;
     editSession((s) => {
       const modalities = Object.fromEntries(
         Object.entries(s.modalities).map(([id, sel]) => [id, { ...sel, enabled: false }]),
@@ -100,13 +112,14 @@ const actions = {
       return { ...s, modalities, sequence: ritual.blocks.map((b) => b.id), appliedRitual: ritual.id };
     });
   },
+  /** Indices refer to the visible blocks; disabled services hidden from the session keep their place at the end. */
   moveInSequence(from: number, to: number) {
     editSession((s) => {
-      if (to < 0 || to >= s.sequence.length || from === to) return s;
-      const sequence = [...s.sequence];
-      const [moved] = sequence.splice(from, 1);
-      sequence.splice(to, 0, moved);
-      return { ...s, sequence };
+      const visible = s.sequence.filter((id) => !isDisabled(id));
+      if (to < 0 || to >= visible.length || from === to) return s;
+      const [moved] = visible.splice(from, 1);
+      visible.splice(to, 0, moved);
+      return { ...s, sequence: [...visible, ...s.sequence.filter(isDisabled)] };
     });
   },
   updateIntake(patch: Partial<IntakeState>) {

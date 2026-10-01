@@ -2,15 +2,17 @@
 
 import { ritualTotals } from "@/lib/catalog";
 import { useDatabase } from "@/lib/db-context";
-import { useBooking } from "@/lib/booking-context";
+import { ritualAvailable, useBooking } from "@/lib/booking-context";
 import { cn } from "@/lib/cn";
 import { formatDuration, formatPrice } from "@/lib/format";
 import { Icon } from "../Icon";
 
 export function RitualCarousel() {
   const db = useDatabase();
-  const RITUALS = db.rituals;
+  const rituals = db.rituals.filter((r) => ritualAvailable(r, db.modalities));
   const { state, actions } = useBooking();
+
+  if (rituals.length === 0) return null;
 
   return (
     <section aria-labelledby="rituals-heading" className="space-y-3">
@@ -22,7 +24,7 @@ export function RitualCarousel() {
         <span className="font-label-sm text-label-sm text-on-surface-variant">Pre-set pairings</span>
       </div>
       <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 pt-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0">
-        {RITUALS.map((ritual, index) => {
+        {rituals.map((ritual, index) => {
           const { price, minutes } = ritualTotals(ritual, db.modalities);
           const applied = state.appliedRitual === ritual.id;
           return (
