@@ -23,6 +23,7 @@ export const paymentsApi = {
   /** Test mode: the stub's stand-in for the processor's hosted form. */
   submitTestCard: (form: CardForm, card: { number: string; expiry: string; cvc: string }) =>
     post<{ customerProfileId: string; paymentProfileId: string }>(form.formUrl, { token: form.token, ...card }),
+  status: () => fetch("/api/payments/status", { cache: "no-store" }).then((r) => r.json() as Promise<{ mode: CardForm["mode"] }>),
   storedCard: (customerProfileId: string, paymentProfileId: string) =>
     post<SavedCard>("/api/payments/stored-card", { customerProfileId, paymentProfileId }),
   charge: (input: { card: SavedCard; amount: number; reason: PaymentKind; bookingId: string }) =>
@@ -35,8 +36,25 @@ export const paymentsApi = {
     }),
 };
 
-/** Charges the booking's card on file and records the attempt (success or failure) on the booking. */
-export async function chargeBooking(booking: ConfirmedBooking, kind: PaymentKind, amount: number): Promise<PaymentRecord> {
+/** Bookings with a charge in flight, so a double click or status change can't charge twice. */
+const inFlight = new Set<string>();
+
+/**
+ * Charges the booking's card on file and records the attempt (success or
+ * failure) on the booking. Returns null if a charge for it is already running.
+ */
+export async function chargeBooking(booking: ConfirmedBooking, kind: PaymentKind, amount: number): Promise<PaymentRecord | null> {
+  if (!booking.payment) throw new Error("No card on file for this booking");
+  if (inFlight.has(booking.id)) return null;
+  inFlight.add(booking.id);
+  try {
+    return await attemptCharge(booking, kind, amount);
+  } finally {
+    inFlight.delete(booking.id);
+  }
+}
+
+async function attemptCharge(booking: ConfirmedBooking, kind: PaymentKind, amount: number): Promise<PaymentRecord> {
   if (!booking.payment) throw new Error("No card on file for this booking");
   let record: PaymentRecord;
   try {

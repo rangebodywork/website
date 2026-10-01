@@ -11,6 +11,7 @@ const LINKS: Array<{ href: string; label: string; icon: IconName }> = [
   { href: "/admin/bookings", label: "Bookings", icon: "event" },
   { href: "/admin/schedule", label: "Schedule", icon: "calendar_month" },
   { href: "/admin/services", label: "Services", icon: "tune" },
+  { href: "/admin/payments", label: "Payments", icon: "lock" },
 ];
 
 export function AdminNav() {

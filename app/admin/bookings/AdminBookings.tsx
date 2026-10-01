@@ -7,6 +7,8 @@ import { useDatabase } from "@/lib/db-context";
 import { formatClock, formatDate, formatPrice } from "@/lib/format";
 import { repository, type BookingStatus, type ConfirmedBooking } from "@/lib/repository";
 import { cn } from "@/lib/cn";
+import { chargeBooking } from "@/lib/payments/client";
+import type { PaymentStatus } from "@/lib/payments/policy";
 
 const STATUSES: BookingStatus[] = ["upcoming", "completed", "cancelled"];
 
@@ -57,12 +59,20 @@ function clientName(b: ConfirmedBooking): string {
   return b.profile?.fullName || b.state.intake.fullName || "Guest";
 }
 
-function StatusSelect({ booking }: { booking: ConfirmedBooking }) {
+/** Marking a session completed charges its total to the card on file, unless already charged. */
+async function setStatus(booking: ConfirmedBooking, status: BookingStatus, total: number) {
+  await repository.setBookingStatus(booking.id, status);
+  if (status === "completed" && booking.payment?.status === "card-on-file") {
+    await chargeBooking(booking, "session", total);
+  }
+}
+
+function StatusSelect({ booking, total }: { booking: ConfirmedBooking; total: number }) {
   return (
     <select
       value={booking.status}
       aria-label={`Status for ${clientName(booking)}`}
-      onChange={(e) => void repository.setBookingStatus(booking.id, e.target.value as BookingStatus)}
+      onChange={(e) => void setStatus(booking, e.target.value as BookingStatus, total)}
       className="rounded-lg border border-outline-variant bg-surface px-3 py-1 text-on-surface text-label-sm uppercase"
     >
       {STATUSES.map((s) => (
@@ -71,6 +81,60 @@ function StatusSelect({ booking }: { booking: ConfirmedBooking }) {
         </option>
       ))}
     </select>
+  );
+}
+
+const PAYMENT_LABELS: Record<PaymentStatus, string> = {
+  "card-on-file": "Card on file",
+  charged: "Charged",
+  "fee-charged": "Fee charged",
+  failed: "Failed",
+};
+
+function PaymentCell({ booking, total }: { booking: ConfirmedBooking; total: number }) {
+  const [busy, setBusy] = useState(false);
+  const payment = booking.payment;
+  if (!payment) return <p className="text-on-surface-variant">No card on file</p>;
+  const last = payment.transactions.at(-1);
+  const canCharge = booking.status !== "cancelled" && payment.status !== "charged" && payment.status !== "fee-charged";
+  return (
+    <div className="space-y-1">
+      <span
+        className={cn(
+          "inline-flex rounded-full px-2 py-0.5 text-label-sm uppercase tracking-wider",
+          payment.status === "failed" ? "bg-error-container text-on-error-container" : "bg-primary-fixed/60 text-primary",
+        )}
+      >
+        {PAYMENT_LABELS[payment.status]}
+      </span>
+      <p className="text-on-surface-variant">
+        {payment.card.brand} •••• {payment.card.last4}
+      </p>
+      {last && (
+        <p className="text-label-sm text-on-surface-variant">
+          {last.ok
+            ? `${last.kind === "session" ? "Session" : "Late-cancel fee"} ${formatPrice(last.amount, true)} · ${last.transactionId}`
+            : `${formatPrice(last.amount, true)} declined: ${last.message}`}
+        </p>
+      )}
+      {canCharge && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await chargeBooking(booking, "session", total);
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="rounded-lg border border-primary/50 px-3 py-1 text-label-sm text-primary hover:bg-primary/10 disabled:opacity-60"
+        >
+          {busy ? "Charging…" : `Charge session ${formatPrice(total, true)}`}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -155,6 +219,7 @@ export function AdminBookings() {
                 <th scope="col" className="p-3 font-semibold">Client</th>
                 <th scope="col" className="p-3 font-semibold">Session</th>
                 <th scope="col" className="p-3 font-semibold">Health</th>
+                <th scope="col" className="p-3 font-semibold">Payment</th>
                 <th scope="col" className="p-3 font-semibold">Status</th>
               </tr>
             </thead>
@@ -176,7 +241,10 @@ export function AdminBookings() {
                     <IntakeDetails booking={b} />
                   </td>
                   <td className="p-3">
-                    <StatusSelect booking={b} />
+                    <PaymentCell booking={b} total={total} />
+                  </td>
+                  <td className="p-3">
+                    <StatusSelect booking={b} total={total} />
                   </td>
                 </tr>
               ))}
@@ -196,11 +264,14 @@ export function AdminBookings() {
                   Ref {b.id} • {b.profile?.phone || b.state.intake.phone}
                 </p>
               </div>
-              <StatusSelect booking={b} />
+              <StatusSelect booking={b} total={total} />
             </div>
             <div className="text-body-sm">
               <p className="text-on-surface">{sessionWhen(b)}</p>
               <p className="text-on-surface-variant">{mods} · {formatPrice(total)}</p>
+            </div>
+            <div className="text-body-sm">
+              <PaymentCell booking={b} total={total} />
             </div>
             <FlagList flags={flags} />
             <IntakeDetails booking={b} />
