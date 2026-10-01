@@ -8,6 +8,8 @@ import { useDatabase } from "@/lib/db-context";
 import { addDays, formatClock, formatDate, formatPrice } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 import { repository, type ConfirmedBooking } from "@/lib/repository";
+import { cancelBooking } from "@/lib/payments/client";
+import { cancellationQuote, type BookingPayment, type CancellationQuote } from "@/lib/payments/policy";
 import { useTodayKey } from "@/components/intake/SacredWindow";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Icon } from "@/components/Icon";
@@ -79,9 +81,12 @@ function BookingSection({
 }
 
 function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; editable: boolean; today: string | null }) {
-  const { modalities } = useDatabase();
+  const { modalities, paymentSettings } = useDatabase();
   const { actions } = useBooking();
   const [mode, setMode] = useState<"view" | "cancel" | "reschedule">("view");
+  // Quoted when the dialog opens, so the fee shown is the fee charged.
+  const [quote, setQuote] = useState<CancellationQuote | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const cancelTrigger = useRef<HTMLButtonElement>(null);
   const keepButton = useRef<HTMLButtonElement>(null);
   const restoreFocus = useRef(false);
@@ -121,6 +126,7 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
         <p className="text-body-sm text-on-surface-variant">
           {formatPrice(total)} · Reference {booking.id}
         </p>
+        {booking.payment && <PaymentLine payment={booking.payment} />}
       </div>
 
       {editable && mode === "view" && (
@@ -135,7 +141,10 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
           <button
             ref={cancelTrigger}
             type="button"
-            onClick={() => setMode("cancel")}
+            onClick={() => {
+              setQuote(cancellationQuote(booking.state.intake, booking.payment, paymentSettings));
+              setMode("cancel");
+            }}
             className="rounded-lg border border-error/50 px-4 py-2 text-error hover:bg-error/10"
           >
             Cancel
@@ -153,16 +162,29 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
           <p id={`cancel-${booking.id}`} className="text-body-md text-on-surface">
             Cancel this session? The studio will release your time slot.
           </p>
+          <p className="mt-2 text-body-sm text-on-surface" data-testid="cancel-fee-notice">
+            {!quote?.late
+              ? "No cancellation fee applies: you are cancelling outside the late-cancellation window."
+              : quote.chargeable
+                ? `This is within ${paymentSettings.cancellationWindowHours} hours of your session, so a ${formatPrice(quote.fee, true)} cancellation fee will be charged to ${booking.payment!.card.brand} ending ${booking.payment!.card.last4}.`
+                : `This is within ${paymentSettings.cancellationWindowHours} hours of your session, so a ${formatPrice(quote.fee, true)} cancellation fee applies. The studio will contact you about payment.`}
+          </p>
           <div className="mt-3 flex gap-2">
             <button
               type="button"
-              onClick={() => {
-                void repository.setBookingStatus(booking.id, "cancelled");
-                actions.syncCancelled(booking.id);
+              disabled={cancelling}
+              onClick={async () => {
+                setCancelling(true);
+                try {
+                  await cancelBooking(booking);
+                  actions.syncCancelled(booking.id);
+                } finally {
+                  setCancelling(false);
+                }
               }}
-              className="rounded-lg bg-error px-4 py-2 text-on-error"
+              className="rounded-lg bg-error px-4 py-2 text-on-error disabled:opacity-60"
             >
-              Yes, cancel booking
+              {quote?.chargeable ? `Cancel and pay ${formatPrice(quote.fee, true)} fee` : "Yes, cancel booking"}
             </button>
             <button
               ref={keepButton}
@@ -190,6 +212,21 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
       )}
     </Card>
   );
+}
+
+/** Customer-facing summary of the card on file and what has been charged. */
+function PaymentLine({ payment }: { payment: BookingPayment }) {
+  const last = payment.transactions.at(-1);
+  const card = `${payment.card.brand} ending ${payment.card.last4}`;
+  const text =
+    payment.status === "card-on-file"
+      ? `${card} on file · not charged yet`
+      : payment.status === "charged"
+        ? `${formatPrice(last?.amount ?? 0, true)} charged to ${card}`
+        : payment.status === "fee-charged"
+          ? `Cancellation fee of ${formatPrice(last?.amount ?? 0, true)} charged to ${card}`
+          : `Payment to ${card} did not go through · the studio will be in touch`;
+  return <p className="text-body-sm text-on-surface-variant" data-testid="payment-line">{text}</p>;
 }
 
 function RescheduleForm({
