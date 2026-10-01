@@ -1,5 +1,5 @@
 import { getPaymentGateway } from "@/lib/payments";
-import { BadRequestError, handle, readJson, requireString } from "@/lib/payments/http";
+import { BadRequestError, NotFoundError, handle, readJson, requireString } from "@/lib/payments/http";
 import { StubPaymentGateway } from "@/lib/payments/stub-gateway";
 
 /**
@@ -8,9 +8,9 @@ import { StubPaymentGateway } from "@/lib/payments/stub-gateway";
  * returned. With a real gateway configured this route does not exist (404).
  */
 export async function POST(request: Request) {
-  const gateway = getPaymentGateway();
-  if (!(gateway instanceof StubPaymentGateway)) return Response.json({ error: "Not found" }, { status: 404 });
   return handle(async () => {
+    const gateway = getPaymentGateway();
+    if (!(gateway instanceof StubPaymentGateway)) throw new NotFoundError();
     const body = await readJson(request);
     const result = await gateway.submitHostedForm(requireString(body, "token"), {
       number: requireString(body, "number", 30),

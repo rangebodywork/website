@@ -74,10 +74,11 @@ export interface PaymentGateway {
 }
 
 export class PaymentGatewayNotConfiguredError extends Error {
-  constructor(method: string) {
+  constructor(method: string, message?: string) {
     super(
-      `Authorize.net gateway is not configured: ${method}() is not implemented yet. ` +
-        "Unset AUTHORIZE_NET_* env vars to use the stub, or finish lib/payments/authorize-net-gateway.ts.",
+      message ??
+        `Authorize.net gateway is not configured: ${method}() is not implemented yet. ` +
+          "Unset AUTHORIZE_NET_* env vars to use the stub, or finish lib/payments/authorize-net-gateway.ts.",
     );
     this.name = "PaymentGatewayNotConfiguredError";
   }

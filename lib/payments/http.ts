@@ -3,6 +3,7 @@ import { PaymentGatewayNotConfiguredError } from "./gateway";
 /** Shared plumbing for the `app/api/payments` route handlers. */
 
 export class BadRequestError extends Error {}
+export class NotFoundError extends Error {}
 
 export async function readJson(request: Request): Promise<Record<string, unknown>> {
   try {
@@ -28,6 +29,7 @@ export async function handle(run: () => Promise<unknown>): Promise<Response> {
     return Response.json(await run(), { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if (error instanceof BadRequestError) return Response.json({ error: error.message }, { status: 400 });
+    if (error instanceof NotFoundError) return Response.json({ error: "Not found" }, { status: 404 });
     if (error instanceof PaymentGatewayNotConfiguredError) {
       console.error("[payments]", error.message);
       return Response.json({ error: "Payments are not set up yet. Please contact the studio." }, { status: 503 });

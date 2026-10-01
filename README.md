@@ -23,7 +23,7 @@ Other scripts:
 | Script          | What it does                                                          |
 | --------------- | --------------------------------------------------------------------- |
 | `npm run build` | Production build (type-checks as part of the build)                   |
-| `npm start`     | Serve the production build (`PORT=4000 npm start` to change the port) |
+| `npm start`     | Serve the production build (`PORT=4000 npm start` to change the port). Payments fail closed here; use `PAYMENTS_ALLOW_STUB=1 npm start` to try them with the stub |
 | `npm run lint`  | ESLint (`eslint-config-next` core-web-vitals + TypeScript)            |
 | `npm run icons` | Re-download the Material Symbols subset (see [Icons](#icons))         |
 | `npm run test:e2e` | Build, start the production server on port 4300 and run the Playwright suite in `e2e/` |
@@ -62,8 +62,9 @@ Playwright's bundled Chromium instead, run `npx playwright install chromium` and
   vercel --prod   # production deployment
   ```
 
-No environment variables are needed to run the site: without Authorize.net keys, payments use the stub gateway
-(test mode). Pages are prerendered as static content; `/api/payments/*` are server functions. When keys arrive,
+Pages are prerendered as static content; `/api/payments/*` are server functions. Payments fail closed on
+Vercel: preview and production deployments both run with `NODE_ENV=production`, so without Authorize.net keys
+the payment routes answer 503. For a demo deployment on the stub, set `PAYMENTS_ALLOW_STUB=1`. When keys arrive,
 add the `AUTHORIZE_NET_*` variables (see [Payments](#payments)) under **Project → Settings → Environment
 Variables**. Do not give them a `NEXT_PUBLIC_` prefix.
 
@@ -259,6 +260,12 @@ give them a `NEXT_PUBLIC_` prefix.
 | `AUTHORIZE_NET_TRANSACTION_KEY` | Transaction Key. Leave it empty to use the stub. |
 | `AUTHORIZE_NET_SIGNATURE_KEY` | Verifies webhook signatures (`X-ANET-Signature`). Not used until webhooks exist. |
 | `AUTHORIZE_NET_ENV` | `sandbox` (the default) or `production`. |
+| `PAYMENTS_ALLOW_STUB` | `1` lets a production runtime use the stub when the keys are empty. Leave it unset for real deployments. |
+
+**Fail closed.** In production (`NODE_ENV=production`, which includes `npm start`, or `VERCEL_ENV=production`),
+the stub is refused when the keys are empty. Every payment route then answers 503, customers can't save a card,
+and `/admin/payments` shows a red "Payments are disabled" banner. `npm run dev` always allows the stub, and the
+e2e suite sets `PAYMENTS_ALLOW_STUB=1`. Whenever the stub is active, `/admin/payments` shows a red stub-mode banner.
 
 Setting the keys today switches to the skeleton, which answers 503 ("Payments are not set up yet") until
 `AuthorizeNetGateway` is implemented.

@@ -10,6 +10,7 @@ const MODE_LABELS = {
   stub: "Test mode (stub gateway, no real charges)",
   sandbox: "Authorize.net sandbox",
   production: "Authorize.net production",
+  disabled: "Disabled: no Authorize.net keys in production",
 } as const;
 
 export function AdminPayments() {
@@ -34,10 +35,24 @@ function GatewayStatus() {
     );
   }, []);
   return (
-    <p className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-4 text-body-sm text-on-surface">
-      <span className="font-semibold">Payment processor: </span>
-      {mode === null ? "Checking…" : mode === "error" ? "Unavailable" : MODE_LABELS[mode]}
-    </p>
+    <div className="space-y-3">
+      {mode === "stub" && (
+        <p role="alert" className="rounded-xl bg-error p-4 text-body-sm font-semibold text-on-error">
+          Stub mode: payments are simulated. Cards are not really saved and no money moves. Set the AUTHORIZE_NET_*
+          keys before taking real bookings.
+        </p>
+      )}
+      {mode === "disabled" && (
+        <p role="alert" className="rounded-xl bg-error p-4 text-body-sm font-semibold text-on-error">
+          Payments are disabled: this production deployment has no Authorize.net keys, so customers cannot save a
+          card. Set the AUTHORIZE_NET_* keys (or PAYMENTS_ALLOW_STUB=1 for a demo).
+        </p>
+      )}
+      <p className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-4 text-body-sm text-on-surface">
+        <span className="font-semibold">Payment processor: </span>
+        {mode === null ? "Checking…" : mode === "error" ? "Unavailable" : MODE_LABELS[mode]}
+      </p>
+    </div>
   );
 }
 

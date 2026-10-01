@@ -19,6 +19,8 @@ export default defineConfig({
   },
   webServer: {
     command: `npm run start -- -p ${PORT}`,
+    // `next start` is a production runtime, where the stub gateway is refused unless explicitly allowed.
+    env: { PAYMENTS_ALLOW_STUB: "1" },
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
     timeout: 60_000,
