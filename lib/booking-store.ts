@@ -96,6 +96,20 @@ export const STORAGE_KEY = "soma-studio:booking";
 let current: BookingState | null = null;
 const listeners = new Set<() => void>();
 
+function isSelection(value: unknown): value is ModalitySelection {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.enabled === "boolean" && typeof v.duration === "number";
+}
+
+/** Keeps only known modality ids with well-formed selections; unknown ids drop out of the sequence too. */
+function parseSelections(stored: unknown): BookingState["modalities"] {
+  const raw = typeof stored === "object" && stored !== null ? (stored as Record<string, unknown>) : {};
+  return Object.fromEntries(
+    MODALITY_ORDER.map((id) => [id, isSelection(raw[id]) ? { ...DEFAULT_STATE.modalities[id], ...raw[id] } : DEFAULT_STATE.modalities[id]]),
+  ) as BookingState["modalities"];
+}
+
 export function parseBookingState(raw: string | null): BookingState {
   if (!raw) return DEFAULT_STATE;
   try {
@@ -104,7 +118,10 @@ export function parseBookingState(raw: string | null): BookingState {
     return {
       ...DEFAULT_STATE,
       ...data,
-      modalities: { ...DEFAULT_STATE.modalities, ...data.modalities },
+      modalities: parseSelections(data.modalities),
+      sequence: Array.isArray(data.sequence)
+        ? [...new Set(data.sequence.filter((id): id is ModalityId => MODALITY_ORDER.includes(id)))]
+        : DEFAULT_STATE.sequence,
       intake: {
         ...DEFAULT_STATE.intake,
         ...data.intake,

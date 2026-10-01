@@ -4,8 +4,13 @@ import { bodyText, go, readDb } from "./helpers";
 /** Data written before My bookings existed: a confirmed session only under the old key, plus a malformed DB. */
 const LEGACY_SESSION = {
   version: 1,
-  modalities: { coaching: { enabled: true, duration: 15 }, massage: { enabled: true, duration: 60, option: "Deep Tissue" } },
-  sequence: ["coaching", "massage"],
+  // "reiki" is not in the catalog: it must be ignored, not crash the app.
+  modalities: {
+    coaching: { enabled: true, duration: 15 },
+    massage: { enabled: true, duration: 60, option: "Deep Tissue" },
+    reiki: { enabled: true, duration: 30 },
+  },
+  sequence: ["coaching", "massage", "reiki"],
   intake: {
     date: "2026-10-20",
     slot: "morning",
@@ -19,6 +24,8 @@ const LEGACY_SESSION = {
 const MALFORMED_DB = { version: 1, modalities: { massage: { pricing: "oops" } }, classes: "bad", bookings: [{ id: 3 }] };
 
 test("legacy confirmed booking migrates once; malformed data is ignored", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (e) => pageErrors.push(e.message));
   await go(page, "/schedule");
   await page.evaluate(
     ([session, db]) => {
@@ -60,5 +67,10 @@ test("legacy confirmed booking migrates once; malformed data is ignored", async 
     expect((await readDb(page)).modalities.massage.pricing["60"]).toBe(110);
     await go(page, "/");
     expect(await bodyText(page)).toContain("$145"); // coaching 35 + massage 110
+  });
+
+  await test.step("unknown modality ids crash no page", async () => {
+    for (const path of ["/", "/review", "/bookings", "/admin"]) await go(page, path);
+    expect(pageErrors).toEqual([]);
   });
 });

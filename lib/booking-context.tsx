@@ -25,7 +25,8 @@ export interface SessionBlock {
 /** Enabled modalities in session order, priced from the current catalog. Services the studio disabled drop out. */
 export function sessionBlocks(state: BookingState, modalities: Record<ModalityId, Modality>): SessionBlock[] {
   return state.sequence
-    .filter((id) => state.modalities[id]?.enabled && !modalities[id].disabled)
+    // Stored sessions may name modalities this catalog no longer has; skip those.
+    .filter((id) => modalities[id] && state.modalities[id]?.enabled && !modalities[id].disabled)
     .map((id) => {
       const modality = modalities[id];
       const duration = resolveDuration(modality, state.modalities[id].duration);
@@ -55,11 +56,11 @@ function newReference(): string {
 
 /** A ritual is bookable only while every modality in it is offered. */
 export function ritualAvailable(ritual: Ritual, modalities: Record<ModalityId, Modality>): boolean {
-  return ritual.blocks.every((b) => !modalities[b.id].disabled);
+  return ritual.blocks.every((b) => modalities[b.id] && !modalities[b.id].disabled);
 }
 
 function isDisabled(id: ModalityId): boolean {
-  return Boolean(repository.getSnapshot().modalities[id].disabled);
+  return Boolean(repository.getSnapshot().modalities[id]?.disabled);
 }
 
 function toggleIn<T>(list: T[], value: T): T[] {
