@@ -108,6 +108,7 @@ function PaymentCell({ booking, total }: { booking: ConfirmedBooking; total: num
   return (
     <div className="space-y-1">
       <span
+        aria-live="polite"
         className={cn(
           "inline-flex rounded-full px-2 py-0.5 text-label-sm uppercase tracking-wider",
           payment.status === "failed" ? "bg-error-container text-on-error-container" : "bg-primary-fixed/60 text-primary",

@@ -156,13 +156,14 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
         <div
           role="alertdialog"
           aria-labelledby={`cancel-${booking.id}`}
+          aria-describedby={`cancel-fee-${booking.id}`}
           onKeyDown={(e) => e.key === "Escape" && dismissCancel()}
           className="mt-4 rounded-lg bg-error/5 p-4"
         >
           <p id={`cancel-${booking.id}`} className="text-body-md text-on-surface">
             Cancel this session? The studio will release your time slot.
           </p>
-          <p className="mt-2 text-body-sm text-on-surface" data-testid="cancel-fee-notice">
+          <p id={`cancel-fee-${booking.id}`} className="mt-2 text-body-sm text-on-surface" data-testid="cancel-fee-notice">
             {quote?.alreadyPaid
               ? "This booking has already been charged, so no cancellation fee applies."
               : !quote?.late

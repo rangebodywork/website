@@ -317,13 +317,21 @@ export function ReviewView() {
 
       <StickyActionBar className="flex flex-col gap-2 p-4 md:max-w-2xl lg:max-w-6xl lg:px-8">
         {intakeComplete && !state.savedCard ? (
-          <button
-            type="button"
-            disabled
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-surface-container-high px-6 py-3.5 font-title-md text-title-md text-on-surface-variant lg:ml-auto lg:max-w-md"
-          >
-            Save a card on file to reserve
-          </button>
+          <>
+            {/* aria-disabled (not disabled) keeps it focusable, so the hint is announced. */}
+            <button
+              type="button"
+              aria-disabled="true"
+              aria-describedby="reserve-hint"
+              onClick={() => document.getElementById("save-card-title")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-surface-container-high px-6 py-3.5 font-title-md text-title-md text-on-surface-variant lg:ml-auto lg:max-w-md"
+            >
+              Save a card on file to reserve
+            </button>
+            <p id="reserve-hint" className="text-center font-label-sm text-label-sm text-on-surface-variant lg:ml-auto lg:max-w-md">
+              Save a card in the Card on file section first. No charge happens now.
+            </p>
+          </>
         ) : intakeComplete ? (
           <button
             type="button"
