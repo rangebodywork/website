@@ -1,6 +1,6 @@
 "use client";
 
-import { durationsFor, type ModalityId } from "@/lib/catalog";
+import { durationsFor, resolveDuration, type ModalityId } from "@/lib/catalog";
 import { useDatabase } from "@/lib/db-context";
 import { useBooking } from "@/lib/booking-context";
 import { cn } from "@/lib/cn";
@@ -103,11 +103,11 @@ export function ModalityCard({ id, active, onInteract, onOpenGuide }: ModalityCa
           Duration
         </span>
         <div className="flex flex-wrap gap-2" role="group" aria-label={`${modality.name} duration`}>
-          {durationsFor(id).map((minutes) => (
+          {durationsFor(modality).map((minutes) => (
             <Chip
               key={minutes}
               variant="duration"
-              selected={selection.duration === minutes}
+              selected={resolveDuration(modality, selection.duration) === minutes}
               onClick={() => {
                 actions.configureModality(id, { duration: minutes });
                 onInteract(id);

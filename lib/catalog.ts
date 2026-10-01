@@ -132,14 +132,20 @@ export const MODALITIES: Record<ModalityId, Modality> = {
 /** Display order of the modality cards in the builder. */
 export const MODALITY_ORDER: ModalityId[] = ["massage", "yoga", "coaching", "breathwork", "training"];
 
-export function durationsFor(id: ModalityId): number[] {
-  return Object.keys(MODALITIES[id].pricing)
+/** Pricing helpers take the modality from the store, so admin edits reach every total. */
+export function durationsFor(modality: Modality): number[] {
+  return Object.keys(modality.pricing)
     .map(Number)
     .sort((a, b) => a - b);
 }
 
-export function priceFor(id: ModalityId, duration: number): number {
-  return MODALITIES[id].pricing[duration] ?? 0;
+/** The selected duration if it is still offered, otherwise the modality's default. */
+export function resolveDuration(modality: Modality, duration: number): number {
+  return duration in modality.pricing ? duration : modality.defaultDuration;
+}
+
+export function priceFor(modality: Modality, duration: number): number {
+  return modality.pricing[duration] ?? 0;
 }
 
 export interface Ritual {
@@ -188,9 +194,9 @@ export const RITUALS: Ritual[] = [
   },
 ];
 
-export function ritualTotals(ritual: Ritual) {
+export function ritualTotals(ritual: Ritual, modalities: Record<ModalityId, Modality>) {
   return ritual.blocks.reduce(
-    (acc, b) => ({ price: acc.price + priceFor(b.id, b.duration), minutes: acc.minutes + b.duration }),
+    (acc, b) => ({ price: acc.price + priceFor(modalities[b.id], b.duration), minutes: acc.minutes + b.duration }),
     { price: 0, minutes: 0 },
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
-import { priceFor, type ModalityId } from "./catalog";
+import { priceFor, resolveDuration, type ModalityId } from "./catalog";
 import { useDatabase } from "./db-context";
 import { repository } from "./repository";
 import {
@@ -138,17 +138,17 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const { modalities } = useDatabase();
 
   const value = useMemo<BookingContextValue>(() => {
-    const MODALITIES = modalities;
     const blocks = state.sequence
       .filter((id) => state.modalities[id]?.enabled)
       .map((id) => {
-        const sel = state.modalities[id];
+        const modality = modalities[id];
+        const duration = resolveDuration(modality, state.modalities[id].duration);
         return {
           id,
-          name: MODALITIES[id].name,
-          duration: sel.duration,
-          option: MODALITIES[id].options ? sel.option : undefined,
-          price: priceFor(id, sel.duration),
+          name: modality.name,
+          duration,
+          option: modality.options ? state.modalities[id].option : undefined,
+          price: priceFor(modality, duration),
         };
       });
     return {

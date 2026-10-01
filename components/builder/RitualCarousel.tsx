@@ -23,7 +23,7 @@ export function RitualCarousel() {
       </div>
       <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 pt-1 lg:mx-0 lg:grid lg:grid-cols-3 lg:overflow-visible lg:px-0">
         {RITUALS.map((ritual, index) => {
-          const { price, minutes } = ritualTotals(ritual);
+          const { price, minutes } = ritualTotals(ritual, db.modalities);
           const applied = state.appliedRitual === ritual.id;
           return (
             <article
