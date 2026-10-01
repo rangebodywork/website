@@ -8,7 +8,7 @@ import { formatClock, formatDate, formatPrice } from "@/lib/format";
 import { repository, type BookingStatus, type ConfirmedBooking } from "@/lib/repository";
 import { cn } from "@/lib/cn";
 import { chargeBooking } from "@/lib/payments/client";
-import { sessionCharged, type PaymentStatus } from "@/lib/payments/policy";
+import { sessionCharged, type PaymentKind, type PaymentStatus } from "@/lib/payments/policy";
 
 const STATUSES: BookingStatus[] = ["upcoming", "completed", "cancelled"];
 
@@ -96,7 +96,15 @@ function PaymentCell({ booking, total }: { booking: ConfirmedBooking; total: num
   const payment = booking.payment;
   if (!payment) return <p className="text-on-surface-variant">No card on file</p>;
   const last = payment.transactions.at(-1);
-  const canCharge = booking.status !== "cancelled" && !sessionCharged(payment) && payment.status !== "fee-charged";
+  // A cancelled booking whose late-cancel fee was declined can retry that fee; an active one can charge its session.
+  const action: { kind: PaymentKind; amount: number; label: string } | null =
+    booking.status === "cancelled"
+      ? last && !last.ok && last.kind === "late-cancel-fee"
+        ? { kind: "late-cancel-fee", amount: last.amount, label: `Retry fee ${formatPrice(last.amount, true)}` }
+        : null
+      : !sessionCharged(payment) && payment.status !== "fee-charged"
+        ? { kind: "session", amount: total, label: `Charge session ${formatPrice(total, true)}` }
+        : null;
   return (
     <div className="space-y-1">
       <span
@@ -117,21 +125,21 @@ function PaymentCell({ booking, total }: { booking: ConfirmedBooking; total: num
             : `${formatPrice(last.amount, true)} declined: ${last.message}`}
         </p>
       )}
-      {canCharge && (
+      {action && (
         <button
           type="button"
           disabled={busy}
           onClick={async () => {
             setBusy(true);
             try {
-              await chargeBooking(booking, "session", total);
+              await chargeBooking(booking, action.kind, action.amount);
             } finally {
               setBusy(false);
             }
           }}
           className="rounded-lg border border-primary/50 px-3 py-1 text-label-sm text-primary hover:bg-primary/10 disabled:opacity-60"
         >
-          {busy ? "Charging…" : `Charge session ${formatPrice(total, true)}`}
+          {busy ? "Charging…" : action.label}
         </button>
       )}
     </div>
