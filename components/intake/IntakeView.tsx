@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useBooking } from "@/lib/booking-context";
+import { useDatabase } from "@/lib/db-context";
 import { formatPrice } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
 import { Avatar, PORTRAITS } from "../Avatar";
@@ -18,6 +19,7 @@ export function IntakeView() {
   const { state, actions, blocks, totalMinutes, totalPrice } = useBooking();
   const effectiveDate = useEffectiveDate();
   const [attempted, setAttempted] = useState(false);
+  useProfilePrefill();
 
   if (blocks.length === 0) return <EmptySession />;
 
@@ -126,4 +128,24 @@ function PolicyNote() {
       </p>
     </div>
   );
+}
+
+/** Fills empty contact fields from the saved profile once per visit, so clearing a field later sticks. */
+function useProfilePrefill() {
+  const { profile } = useDatabase();
+  const { state, actions } = useBooking();
+  const done = useRef(false);
+  const { intake, confirmation } = state;
+
+  useEffect(() => {
+    if (done.current || confirmation) return;
+    if (!profile.fullName && !profile.phone && !profile.emergencyContact) return;
+    done.current = true;
+    const patch = {
+      ...(!intake.fullName.trim() && profile.fullName && { fullName: profile.fullName }),
+      ...(!intake.phone.trim() && profile.phone && { phone: profile.phone }),
+      ...(!intake.emergencyContact.trim() && profile.emergencyContact && { emergencyContact: profile.emergencyContact }),
+    };
+    if (Object.keys(patch).length > 0) actions.updateIntake(patch);
+  }, [profile, confirmation, intake.fullName, intake.phone, intake.emergencyContact, actions]);
 }
