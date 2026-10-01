@@ -6,7 +6,8 @@ is also a schedule of group classes and workshops.
 
 - **Stack:** Next.js 16 (App Router, Turbopack), React 19, TypeScript, Tailwind CSS v4 (+ `@tailwindcss/forms`)
 - **Design system:** "Somatic Sanctuary", from `docs/*/DESIGN.md`. The tokens live in `app/globals.css` (`@theme`)
-- **No backend.** Booking state is held in a React context, persisted to `localStorage` under `soma-studio:booking`
+- **No backend.** Everything lives in the browser's `localStorage` (see [Data layer](#data-layer)): the in-progress
+  session under `soma-studio:booking`, and the catalog, schedule, bookings and profile under `soma-studio:db`
 
 ## Run locally
 
@@ -44,25 +45,42 @@ No environment variables are needed. Every route is prerendered as static conten
 
 ## Route map
 
-The booking flow is **Builder → Intake → Review**. The Schedule page sits beside that flow.
+The booking flow is **Builder → Intake → Review**. The Schedule page sits beside that flow, and *My bookings*
+and *Profile* manage what the client has saved. The admin back-office lives under `/admin` and is not linked
+from the customer navigation.
+
+### Customer (`app/(customer)`)
 
 | Route       | Screen (Stitch export)                                               | Purpose                                                                                                                                                                                |
 | ----------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/`         | Modular Session Builder (`stitch_…scheduler` + `-2`, merged)         | Apply a curated ritual, or toggle modalities and pick durations and techniques. Reorder the sequence by dragging or with the arrow keys. Modality guide sheet. **Continue → `/intake`** |
-| `/intake`   | Client Intake & Session Customization (`-3`)                         | Pick a date and time slot. Tailoring sections A/B/C appear only for the selected modalities. Health record is validated. **Review & Confirm → `/review`**                            |
-| `/review`   | Review Your Customized Session (`-5`)                                | Itinerary, intake summary and pricing, built from your choices. **Confirm & Reserve** shows a confirmation with `.ics` / Google Calendar export                                        |
-| `/schedule` | Schedule (`-4`)                                                      | Equinox group classes and Soma Studio workshops, with category filters, bookmarks, `.ics` export and mailto reservations                                                              |
+| `/intake`   | Client Intake & Session Customization (`-3`)                         | Pick a date and time slot. Tailoring sections A/B/C appear only for the selected modalities. Health record is validated; empty contact fields pre-fill from the profile. **Review & Confirm → `/review`** |
+| `/review`   | Review Your Customized Session (`-5`)                                | Itinerary, intake summary and pricing, built from your choices. **Confirm & Reserve** saves the booking and shows a confirmation with `.ics` / Google Calendar export                 |
+| `/schedule` | Schedule (`-4`)                                                      | Group classes and workshops (as edited in the admin), with category filters, bookmarks, `.ics` export and mailto reservations                                                         |
+| `/bookings` | — (new)                                                              | My bookings, split into Upcoming and Past (past = cancelled/completed, or the date has gone by). Reschedule (date + time picker) and Cancel (asks first) for upcoming sessions      |
+| `/profile`  | — (new)                                                              | The client's own name, phone and emergency contact. Saved on change; used to pre-fill the next intake. Editing it never touches a confirmed booking                                   |
+
+### Admin (`app/admin`, behind a demo passcode)
+
+| Route              | Purpose                                                                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/admin`           | Dashboard: counts of upcoming bookings, classes and workshops, and the next upcoming sessions sorted by date                                          |
+| `/admin/bookings`  | Bookings table (cards on mobile): filter by status, change status, read intake and health notes. Pregnancy, missing required consents and sensitivities are flagged |
+| `/admin/schedule`  | Add, edit and delete recurring classes and workshops. Changes show on `/schedule`                                                                      |
+| `/admin/services`  | Enable/disable each modality and edit its duration → price table and default duration. A disabled modality disappears from the builder, its rituals are hidden, and it is not priced on `/review` |
 
 How the pages connect:
 
 - **Shared header (`components/SiteHeader.tsx`)** has two variants:
   - *brand*: used on `/` and `/schedule`.
-  - *flow*: used on `/intake` and `/review`. It has a back button and a centered title.
-- **Desktop navigation:** on md+ screens the header shows Practices `/`, Schedule `/schedule`, Journey
-  `/review` and Profile `/intake`.
-- **Mobile navigation:** the same four links appear in the bottom tab bar on `/schedule`. The booking steps
-  show their sticky CTA bars instead, as the designs do.
-- **Footer:** one shared footer, rendered from the root layout.
+  - *flow*: used on `/intake`, `/review`, `/bookings` and `/profile`. It has a back button and a centered title.
+- **Customer navigation:** Practices `/`, Schedule `/schedule`, My bookings `/bookings` and Profile `/profile` — in
+  the header on md+ screens and in the bottom tab bar on `/schedule`. Practices stays highlighted on `/intake`
+  and `/review`, the steps of building a session. The booking steps show their sticky CTA bars instead, as the
+  designs do.
+- **Admin layout** has its own side navigation (current page marked with `aria-current`), a link back to the
+  customer site, and a Sign out button.
+- **Footer:** one shared footer, rendered from the customer layout.
 
 ## Builder variant choice
 
@@ -115,8 +133,9 @@ Two things were taken from **variant 1** instead:
   - "Reserve Spot" and "Guest Inquiry" open prefilled emails to the practitioner.
   - "Book in Equinox App" links to equinox.com.
   - The promo code is saved and noted, not validated.
-  - Confirm creates a local reference number.
-  - Editing the session after confirming clears the confirmation.
+  - Confirm saves the booking to My bookings under a local reference number (`SOMA-XXXXXX`).
+  - Editing the session after confirming clears the confirmation; confirming again updates that same booking
+    (while it is still upcoming) instead of adding a second one. **Build another session** starts a new one.
 - **Desktop layouts** were added; the Stitch screens are all mobile:
   - builder and review: two columns
   - intake: a sticky left column
@@ -126,33 +145,48 @@ Two things were taken from **variant 1** instead:
 ## Project layout
 
 ```
-app/                 routes (/, /intake, /review, /schedule), root layout, fonts, theme
+app/                 root layout, fonts, theme
+  (customer)/        /, /intake, /review, /schedule, /bookings, /profile + customer layout
+  admin/             /admin, /admin/bookings, /admin/schedule, /admin/services + passcode gate, admin nav
 components/          SiteHeader, DesktopNav, BottomNav, SiteFooter, StickyActionBar, Icon, Avatar
   ui/                Chip, Badge, Card primitives
   builder/ intake/ review/ schedule/   screen sections
-lib/                 catalog (modalities, rituals, pricing), booking store + context, formatting, .ics
+lib/                 catalog (modalities, rituals, pricing), repository (data layer), booking store + context,
+                     formatting, .ics
 public/images/       practitioner & studio photography from the Stitch exports
 scripts/             fetch-icons.mjs (Material Symbols subset)
 docs/                original Stitch exports (unchanged)
 ```
 
 
-## Admin & Customer Separation
+## Data layer
 
-The application routes are split into a **Customer** experience and an **Admin** back-office:
+`lib/repository.ts` defines a `Repository` interface and its `localStorage` implementation
+(`createLocalStorageRepository`). Components never edit the stored data directly:
 
-- **Customer Flow (`app/(customer)`)**: Everything from the builder to intake, review, schedule, my bookings, and profile. It uses a customer-specific layout with the site footer.
-- **Admin Dashboard (`app/admin`)**: A hidden back-office mapped to `/admin`. It features its own side navigation layout and is gated by a **demo passcode** component.
+- **Reads** go through `useDatabase()` (`lib/db-context.tsx`), a `useSyncExternalStore` hook over
+  `repository.getSnapshot()`. The server snapshot is the built-in catalog with no bookings, so prerendered HTML
+  and the first client render always match.
+- **Writes** go through domain methods: `addBooking`, `setBookingStatus`, `rescheduleBooking`, `upsertClass`,
+  `deleteClass`, `upsertWorkshop`, `deleteWorkshop`, `setModalityEnabled`, `setPricing`, `saveProfile`. They
+  return promises, so a real backend can implement the same interface with network calls; the
+  `localStorage` version resolves immediately.
+- **Stored shape.** `soma-studio:db` is versioned (currently 2). For modalities it stores only the
+  admin-editable fields (`disabled`, `pricing`, `defaultDuration`) and merges them onto the code catalog by id,
+  so catalog changes in code still reach existing browsers. Malformed entries are dropped rather than crashing
+  the app. Rituals always come from code.
+- **Pricing** is read from the stored catalog (`priceFor(modality, duration)`), so admin price edits change
+  builder, ritual and review totals. If a selected duration is removed, the selection falls back to the
+  modality's default duration. Each booking keeps a snapshot of its priced blocks, so later price edits don't
+  rewrite past bookings.
+- **Migration.** A session confirmed before My bookings existed (stored only under `soma-studio:booking`) is
+  copied into the bookings list once, on first load.
+- The in-progress session (`lib/booking-store.ts` + `lib/booking-context.tsx`) is still a separate store under
+  `soma-studio:booking`. It is per-session scratch state, not shared data.
 
-### Admin Features
+## Admin passcode — not real security
 
-- **Dashboard**: High-level stats on upcoming bookings, classes, and workshops.
-- **Bookings Management**: A table to view, filter (upcoming, completed, cancelled), and change the status of bookings. It displays full intake details and health notes.
-- **Schedule Management**: Interfaces to add, edit, or remove recurring classes and workshops.
-- **Service Management**: Enable or disable modalities. Changes reflect instantly in the customer builder.
-
-### Data Layer
-
-All state, including bookings, catalog data, and schedule, is managed by a centralized typed repository (`lib/repository.ts`). This repository uses `useSyncExternalStore` for hydration-safe reactive updates across all components, persisting to `localStorage`. This sets up a clean seam for a future backend replacement.
-
-> **Security Note:** The admin passcode gate (0000) is for demonstration purposes only. It uses client-side state and `sessionStorage` and is **NOT** a real security boundary. Do not use in production.
+`/admin` is gated by `DEMO_ADMIN_PASSCODE` (`0000`) in `app/admin/PasscodeGate.tsx`. **This is a demo, not a
+security boundary:** the passcode ships in the client bundle, the "session" is a `sessionStorage` flag anyone
+can set, and all data is in the visitor's own `localStorage` anyway. A real deployment needs server-side
+authentication and a backend behind the `Repository` interface.
