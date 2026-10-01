@@ -1,11 +1,18 @@
 "use client";
 
+import { TIME_SLOTS } from "@/lib/catalog";
+import { sessionBlocks } from "@/lib/booking-context";
 import { useDatabase } from "@/lib/db-context";
+import { formatClock, formatDate } from "@/lib/format";
 import { Icon } from "@/components/Icon";
 
 export function AdminDashboard() {
-  const { bookings, classes, workshops } = useDatabase();
-  const upcomingBookings = bookings.filter((b) => b.status === "upcoming").length;
+  const { bookings, classes, workshops, modalities } = useDatabase();
+  // Undated sessions sort last.
+  const upcoming = bookings
+    .filter((b) => b.status === "upcoming")
+    .sort((a, b) => (a.state.intake.date ?? "9999").localeCompare(b.state.intake.date ?? "9999"));
+  const upcomingBookings = upcoming.length;
   
   return (
     <div className="space-y-6">
@@ -37,14 +44,18 @@ export function AdminDashboard() {
         </div>
       </div>
       
-      <h2 className="text-title-lg text-primary mt-8 mb-4">Recent Bookings</h2>
+      <h2 className="text-title-lg text-primary mt-8 mb-4">Upcoming Sessions</h2>
       <div className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest divide-y divide-outline-variant/30">
-        {bookings.slice(-5).reverse().map((b) => (
+        {upcoming.slice(0, 8).map((b) => (
           <div key={b.id} className="p-4 flex justify-between items-center">
             <div>
               <p className="font-title-md text-on-surface">{b.state.intake.fullName || "Guest"}</p>
               <p className="text-body-sm text-on-surface-variant">
-                {b.state.intake.date || "No date"} - {b.state.intake.slot} • {b.state.sequence.join(", ")}
+                {b.state.intake.date
+                  ? formatDate(b.state.intake.date, { weekday: "short", month: "short", day: "numeric" })
+                  : "No date"}{" "}
+                · {formatClock((TIME_SLOTS.find((s) => s.id === b.state.intake.slot) ?? TIME_SLOTS[0]).startMinutes)} ·{" "}
+                {(b.blocks ?? sessionBlocks(b.state, modalities)).map((x) => x.name).join(", ")}
               </p>
             </div>
             <span className="px-3 py-1 rounded-full border border-primary/30 text-label-sm text-primary uppercase">
@@ -52,8 +63,8 @@ export function AdminDashboard() {
             </span>
           </div>
         ))}
-        {bookings.length === 0 && (
-          <p className="p-4 text-body-md text-on-surface-variant text-center">No bookings found.</p>
+        {upcoming.length === 0 && (
+          <p className="p-4 text-body-md text-on-surface-variant text-center">No upcoming sessions.</p>
         )}
       </div>
     </div>
