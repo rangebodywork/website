@@ -110,6 +110,8 @@ export function parseBookingState(raw: string | null): BookingState {
         ...data.intake,
         consents: { ...DEFAULT_STATE.intake.consents, ...data.intake?.consents },
       },
+      // Sessions confirmed before bookingId existed were migrated under their reference (see repository.ts).
+      bookingId: data.bookingId ?? data.confirmation?.reference ?? null,
     };
   } catch {
     return DEFAULT_STATE;
