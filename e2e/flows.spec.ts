@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { bodyText, dateFromToday, go, readDb } from "./helpers";
+import { expect, test } from "@playwright/test";
+import { bodyText, dateFromToday, go, readDb, saveTestCard, signIn } from "./helpers";
 
 /*
  * One long journey in a single browser context: the admin changes the catalog, the customer books,
@@ -7,11 +7,6 @@ import { bodyText, dateFromToday, go, readDb } from "./helpers";
  */
 
 const SERVICE_CARD = "div.rounded-xl";
-
-async function signIn(page: Page) {
-  await page.getByLabel("Admin passcode").fill("0000");
-  await page.getByRole("button", { name: "Enter" }).click();
-}
 
 test("customer and admin flows", async ({ page }) => {
   const consoleErrors: string[] = [];
@@ -75,6 +70,7 @@ test("customer and admin flows", async ({ page }) => {
     const text = await bodyText(page);
     expect(text).not.toContain("Functional Resistance Training");
     expect(text).toContain("$235");
+    await saveTestCard(page);
     await page.getByRole("button", { name: /Confirm & Reserve/ }).click();
     await expect(page.getByText(/Reference SOMA-/).first()).toBeVisible();
     const db = await readDb(page);
@@ -156,6 +152,8 @@ test("customer and admin flows", async ({ page }) => {
     const rows = page.locator("table tbody tr");
     const index = await rows.evaluateAll((trs, id) => trs.findIndex((tr) => tr.textContent?.includes(id)), latest.id);
     await select.nth(index).selectOption("completed");
+    // Completing a session charges its total to the card on file.
+    await expect.poll(async () => (await readDb(page)).bookings.find((b: { id: string }) => b.id === latest.id).payment.status).toBe("charged");
     await go(page, "/review");
     await expect(page.getByRole("heading", { name: "This session is complete" })).toBeVisible();
   });

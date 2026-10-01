@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { bodyText, go, readDb } from "./helpers";
+import { bodyText, go, readDb, saveTestCard } from "./helpers";
 
 /** Data written before My bookings existed: a confirmed session only under the old key, plus a malformed DB. */
 const LEGACY_SESSION = {
@@ -56,6 +56,7 @@ test("legacy confirmed booking migrates once; malformed data is ignored", async 
     await go(page, "/intake");
     await page.locator("#client-phone").fill("555 777 6666");
     await go(page, "/review");
+    await saveTestCard(page);
     await page.getByRole("button", { name: /Confirm & Reserve/ }).click();
     await expect(page.getByText(/Reference SOMA-OLD01/).first()).toBeVisible();
     const db = await readDb(page);
