@@ -55,8 +55,20 @@ export function isPlaceholderPolicy(text: string): boolean {
   return text.startsWith("[Placeholder");
 }
 
-export function newCardPayment(card: SavedCard): BookingPayment {
-  return { card, status: "card-on-file", transactions: [] };
+/**
+ * Puts a (new) card on file, keeping any earlier charge history. Status follows
+ * the last record, except that a decline on the previous card doesn't count
+ * against the new one.
+ */
+export function newCardPayment(card: SavedCard, previous?: BookingPayment): BookingPayment {
+  const transactions = previous?.transactions ?? [];
+  const last = transactions.at(-1);
+  return { card, status: last?.ok ? statusFor(last) : "card-on-file", transactions };
+}
+
+/** True once a session charge has gone through; a booking is never charged for its session twice. */
+export function sessionCharged(payment: BookingPayment | undefined): boolean {
+  return Boolean(payment?.transactions.some((t) => t.ok && t.kind === "session"));
 }
 
 /** Status after recording a transaction: the latest attempt wins. */

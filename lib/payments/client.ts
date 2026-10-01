@@ -1,6 +1,6 @@
 import { repository, type ConfirmedBooking } from "../repository";
 import type { HostedCardForm, TransactionResult } from "./gateway";
-import { cancellationQuote, type PaymentKind, type PaymentRecord, type SavedCard } from "./policy";
+import { cancellationQuote, sessionCharged, type PaymentKind, type PaymentRecord, type SavedCard } from "./policy";
 
 /** Browser-side calls to our own `/api/payments` routes; never to the processor. */
 
@@ -41,11 +41,15 @@ const inFlight = new Set<string>();
 
 /**
  * Charges the booking's card on file and records the attempt (success or
- * failure) on the booking. Returns null if a charge for it is already running.
+ * failure) on the booking. Returns null if a charge for it is already running,
+ * or if this is a session charge and the session was already charged.
  */
-export async function chargeBooking(booking: ConfirmedBooking, kind: PaymentKind, amount: number): Promise<PaymentRecord | null> {
+export async function chargeBooking(snapshot: ConfirmedBooking, kind: PaymentKind, amount: number): Promise<PaymentRecord | null> {
+  // Decide on the latest stored record, not whatever the caller rendered.
+  const booking = repository.listBookings().find((b) => b.id === snapshot.id) ?? snapshot;
   if (!booking.payment) throw new Error("No card on file for this booking");
   if (inFlight.has(booking.id)) return null;
+  if (kind === "session" && sessionCharged(booking.payment)) return null;
   inFlight.add(booking.id);
   try {
     return await attemptCharge(booking, kind, amount);

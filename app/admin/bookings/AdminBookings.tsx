@@ -8,7 +8,7 @@ import { formatClock, formatDate, formatPrice } from "@/lib/format";
 import { repository, type BookingStatus, type ConfirmedBooking } from "@/lib/repository";
 import { cn } from "@/lib/cn";
 import { chargeBooking } from "@/lib/payments/client";
-import type { PaymentStatus } from "@/lib/payments/policy";
+import { sessionCharged, type PaymentStatus } from "@/lib/payments/policy";
 
 const STATUSES: BookingStatus[] = ["upcoming", "completed", "cancelled"];
 
@@ -96,7 +96,7 @@ function PaymentCell({ booking, total }: { booking: ConfirmedBooking; total: num
   const payment = booking.payment;
   if (!payment) return <p className="text-on-surface-variant">No card on file</p>;
   const last = payment.transactions.at(-1);
-  const canCharge = booking.status !== "cancelled" && payment.status !== "charged" && payment.status !== "fee-charged";
+  const canCharge = booking.status !== "cancelled" && !sessionCharged(payment) && payment.status !== "fee-charged";
   return (
     <div className="space-y-1">
       <span

@@ -174,12 +174,12 @@ const actions = {
       blocks,
       totalPrice: blocks.reduce((sum, b) => sum + b.price, 0),
       profile,
-      // Keep the charge history when re-confirming with the same card; a new card starts fresh.
+      // Re-confirming keeps the charge history; a different card replaces the old one but not its history.
       payment:
         existing?.payment && existing.payment.card.paymentProfileId === confirmed.savedCard?.paymentProfileId
           ? existing.payment
           : confirmed.savedCard
-            ? newCardPayment(confirmed.savedCard)
+            ? newCardPayment(confirmed.savedCard, existing?.payment)
             : existing?.payment,
     });
   },
