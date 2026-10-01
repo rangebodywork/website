@@ -1,0 +1,192 @@
+"use client";
+
+import { useState } from "react";
+import { useBooking } from "@/lib/booking-context";
+import { paymentsApi, type CardForm } from "@/lib/payments/client";
+import { Icon } from "../Icon";
+import { Card } from "../ui/Card";
+
+const inputClass =
+  "mt-1 block w-full rounded-md border border-outline-variant bg-surface px-3 py-2 font-body-sm text-body-sm text-on-surface";
+
+/**
+ * "Save card on file" step before confirming. Only a payment-profile reference
+ * and brand/last4 come back to the browser. In test mode the form below plays
+ * the part of Authorize.net's hosted form; the number goes only to the stub.
+ */
+export function SaveCardStep() {
+  const { state, actions } = useBooking();
+  const [consent, setConsent] = useState(false);
+  const [form, setForm] = useState<CardForm | null>(null);
+  const [card, setCard] = useState({ number: "", expiry: "", cvc: "" });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const saved = state.savedCard;
+
+  const run = async (task: () => Promise<void>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await task();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openForm = () =>
+    run(async () => {
+      setForm(
+        await paymentsApi.startCardForm({
+          merchantCustomerId: `c${crypto.randomUUID().replace(/-/g, "").slice(0, 19)}`,
+          name: state.intake.fullName,
+        }),
+      );
+    });
+
+  const submitCard = () =>
+    run(async () => {
+      if (!form) return;
+      const { customerProfileId, paymentProfileId } = await paymentsApi.submitTestCard(form, card);
+      actions.setSavedCard(await paymentsApi.storedCard(customerProfileId, paymentProfileId));
+      setForm(null);
+      setCard({ number: "", expiry: "", cvc: "" });
+    });
+
+  return (
+    <Card className="space-y-3" aria-labelledby="save-card-title">
+      <div className="flex items-baseline justify-between gap-3 border-b border-surface-variant/50 pb-2">
+        <h2 id="save-card-title" className="font-headline-md text-headline-md text-primary">
+          Card on file
+        </h2>
+      </div>
+      <p className="flex items-start gap-2 font-body-sm text-body-sm text-on-surface-variant">
+        <Icon name="lock" className="mt-0.5 text-[16px] text-primary" />
+        <span>
+          <strong className="text-on-surface">No charge happens now.</strong> Your card is saved securely with our payment
+          processor and charged after your session, or for a late cancellation as described in the policy.
+        </span>
+      </p>
+
+      {saved ? (
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-container-low p-3" role="status">
+          <span className="flex items-center gap-2 font-title-md text-title-md text-on-surface">
+            <Icon name="check_circle" filled className="text-[20px] text-primary" />
+            {saved.brand} ending {saved.last4} saved
+          </span>
+          <button
+            type="button"
+            onClick={() => actions.setSavedCard(null)}
+            className="font-label-md text-label-md text-primary underline"
+          >
+            Use a different card
+          </button>
+        </div>
+      ) : form ? (
+        <form
+          aria-label="Test-mode card form"
+          className="space-y-3 rounded-lg border-2 border-dashed border-tertiary/60 bg-tertiary-fixed/30 p-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submitCard();
+          }}
+        >
+          <p className="font-label-md text-label-md uppercase tracking-wider text-on-tertiary-fixed">
+            Test mode · no real card is processed
+          </p>
+          <p className="font-body-sm text-body-sm text-on-tertiary-fixed-variant">
+            {form.mode === "stub"
+              ? "Stands in for Authorize.net's hosted card form until the studio's keys are set up. Use 4111 1111 1111 1111 (approves) or 4000 0000 0000 0002 (declines when charged), any future expiry and any 3-digit code."
+              : "Live payment form not available yet."}
+          </p>
+          <div>
+            <label htmlFor="card-number" className="block font-label-md text-label-md text-on-surface-variant">
+              Card number
+            </label>
+            <input
+              id="card-number"
+              inputMode="numeric"
+              autoComplete="off"
+              required
+              value={card.number}
+              onChange={(e) => setCard({ ...card, number: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="card-expiry" className="block font-label-md text-label-md text-on-surface-variant">
+                Expiry (MM/YY)
+              </label>
+              <input
+                id="card-expiry"
+                autoComplete="off"
+                required
+                placeholder="MM/YY"
+                value={card.expiry}
+                onChange={(e) => setCard({ ...card, expiry: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="card-cvc" className="block font-label-md text-label-md text-on-surface-variant">
+                Security code
+              </label>
+              <input
+                id="card-cvc"
+                inputMode="numeric"
+                autoComplete="off"
+                required
+                value={card.cvc}
+                onChange={(e) => setCard({ ...card, cvc: e.target.value })}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" disabled={busy} className="rounded-lg bg-primary px-4 py-2 text-on-primary disabled:opacity-60">
+              Save test card
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm(null)}
+              className="rounded-lg border border-outline-variant px-4 py-2 text-on-surface"
+            >
+              Back
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="space-y-3">
+          <label className="flex cursor-pointer items-start gap-2 font-body-sm text-body-sm text-on-surface">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-0.5 h-5 w-5 rounded-sm border-outline text-primary focus:ring-0"
+            />
+            <span>
+              I authorize Soma Studio to keep my card on file and charge it for this session after it takes place, and
+              for a late-cancellation fee under the cancellation policy.
+            </span>
+          </label>
+          <button
+            type="button"
+            disabled={!consent || busy}
+            onClick={() => void openForm()}
+            className="rounded-lg border border-primary/50 px-4 py-2 font-label-md text-label-md text-primary hover:bg-primary/10 disabled:opacity-50"
+          >
+            Save card on file
+          </button>
+        </div>
+      )}
+
+      {error && (
+        <p role="alert" className="font-label-sm text-label-sm text-error">
+          {error}
+        </p>
+      )}
+    </Card>
+  );
+}

@@ -4,6 +4,7 @@ import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNod
 import { priceFor, resolveDuration, type Modality, type ModalityId, type Ritual, type TimeSlotId } from "./catalog";
 import { useDatabase } from "./db-context";
 import { repository } from "./repository";
+import { newCardPayment, type SavedCard } from "./payments/policy";
 import {
   DEFAULT_STATE,
   getServerSnapshot,
@@ -138,6 +139,10 @@ const actions = {
   setCalendarSync(calendarSync: boolean) {
     updateState((s) => ({ ...s, calendarSync }));
   },
+  /** Card saved on file from /review; no charge happens. Null removes it. */
+  setSavedCard(savedCard: SavedCard | null) {
+    updateState((s) => ({ ...s, savedCard }));
+  },
   toggleSavedClass(id: string) {
     updateState((s) => ({ ...s, savedClasses: toggleIn(s.savedClasses, id) }));
   },
@@ -169,6 +174,13 @@ const actions = {
       blocks,
       totalPrice: blocks.reduce((sum, b) => sum + b.price, 0),
       profile,
+      // Keep the charge history when re-confirming with the same card; a new card starts fresh.
+      payment:
+        existing?.payment && existing.payment.card.paymentProfileId === confirmed.savedCard?.paymentProfileId
+          ? existing.payment
+          : confirmed.savedCard
+            ? newCardPayment(confirmed.savedCard)
+            : existing?.payment,
     });
   },
   /** Mirrors a reschedule from My bookings into the session it was booked from, keeping its confirmation. */

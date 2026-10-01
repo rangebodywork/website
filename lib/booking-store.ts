@@ -7,6 +7,7 @@ import {
   type PressureLevel,
   type TimeSlotId,
 } from "./catalog";
+import type { SavedCard } from "./payments/policy";
 
 export interface ModalitySelection {
   enabled: boolean;
@@ -47,6 +48,8 @@ export interface BookingState {
   confirmation: Confirmation | null;
   /** Booking this session was saved as; re-confirming after an edit updates it instead of adding another. */
   bookingId: string | null;
+  /** Card saved on file for this session (reference + last4/brand only); attached to the booking on confirm. */
+  savedCard: SavedCard | null;
 }
 
 /** Built from the static catalog so the default state is identical on server and client. */
@@ -89,6 +92,7 @@ export const DEFAULT_STATE: BookingState = {
   savedClasses: [],
   confirmation: null,
   bookingId: null,
+  savedCard: null,
 };
 
 export const STORAGE_KEY = "soma-studio:booking";
@@ -110,6 +114,14 @@ function parseSelections(stored: unknown): BookingState["modalities"] {
   ) as BookingState["modalities"];
 }
 
+function parseSavedCard(value: unknown): SavedCard | null {
+  if (typeof value !== "object" || value === null) return null;
+  const v = value as Record<string, unknown>;
+  const keys = ["customerProfileId", "paymentProfileId", "last4", "brand"] as const;
+  if (!keys.every((k) => typeof v[k] === "string")) return null;
+  return Object.fromEntries(keys.map((k) => [k, v[k]])) as unknown as SavedCard;
+}
+
 export function parseBookingState(raw: string | null): BookingState {
   if (!raw) return DEFAULT_STATE;
   try {
@@ -129,6 +141,7 @@ export function parseBookingState(raw: string | null): BookingState {
       },
       // Sessions confirmed before bookingId existed were migrated under their reference (see repository.ts).
       bookingId: data.bookingId ?? data.confirmation?.reference ?? null,
+      savedCard: parseSavedCard(data.savedCard),
     };
   } catch {
     return DEFAULT_STATE;

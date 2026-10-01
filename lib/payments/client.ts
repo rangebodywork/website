@@ -1,0 +1,71 @@
+import { repository, type ConfirmedBooking } from "../repository";
+import type { HostedCardForm, TransactionResult } from "./gateway";
+import { cancellationQuote, type PaymentKind, type PaymentRecord, type SavedCard } from "./policy";
+
+/** Browser-side calls to our own `/api/payments` routes; never to the processor. */
+
+async function post<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new Error(data.error ?? "Payment service error");
+  return data;
+}
+
+export type CardForm = HostedCardForm & { mode: "stub" | "sandbox" | "production"; customerProfileId: string };
+
+export const paymentsApi = {
+  startCardForm: (input: { merchantCustomerId: string; name?: string; email?: string; customerProfileId?: string }) =>
+    post<CardForm>("/api/payments/card-form", input),
+  /** Test mode: the stub's stand-in for the processor's hosted form. */
+  submitTestCard: (form: CardForm, card: { number: string; expiry: string; cvc: string }) =>
+    post<{ customerProfileId: string; paymentProfileId: string }>(form.formUrl, { token: form.token, ...card }),
+  storedCard: (customerProfileId: string, paymentProfileId: string) =>
+    post<SavedCard>("/api/payments/stored-card", { customerProfileId, paymentProfileId }),
+  charge: (input: { card: SavedCard; amount: number; reason: PaymentKind; bookingId: string }) =>
+    post<TransactionResult>("/api/payments/charge", {
+      customerProfileId: input.card.customerProfileId,
+      paymentProfileId: input.card.paymentProfileId,
+      amount: input.amount,
+      reason: input.reason,
+      bookingId: input.bookingId,
+    }),
+};
+
+/** Charges the booking's card on file and records the attempt (success or failure) on the booking. */
+export async function chargeBooking(booking: ConfirmedBooking, kind: PaymentKind, amount: number): Promise<PaymentRecord> {
+  if (!booking.payment) throw new Error("No card on file for this booking");
+  let record: PaymentRecord;
+  try {
+    const result = await paymentsApi.charge({ card: booking.payment.card, amount, reason: kind, bookingId: booking.id });
+    record = result.ok
+      ? { id: crypto.randomUUID(), kind, amount, at: new Date().toISOString(), ok: true, transactionId: result.transactionId }
+      : { id: crypto.randomUUID(), kind, amount, at: new Date().toISOString(), ok: false, message: result.message };
+  } catch (error) {
+    record = {
+      id: crypto.randomUUID(),
+      kind,
+      amount,
+      at: new Date().toISOString(),
+      ok: false,
+      message: error instanceof Error ? error.message : "Payment service error",
+    };
+  }
+  await repository.recordPayment(booking.id, record);
+  return record;
+}
+
+/**
+ * Cancels a booking under the current policy: inside the window the fee is
+ * charged to the card on file first. The booking is cancelled either way; a
+ * failed fee charge is left on the booking for the studio to follow up.
+ */
+export async function cancelBooking(booking: ConfirmedBooking): Promise<PaymentRecord | null> {
+  const quote = cancellationQuote(booking.state.intake, booking.payment, repository.getPaymentSettings());
+  const fee = quote.chargeable ? await chargeBooking(booking, "late-cancel-fee", quote.fee) : null;
+  await repository.setBookingStatus(booking.id, "cancelled");
+  return fee;
+}

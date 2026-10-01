@@ -10,6 +10,7 @@ import { ROUTES, STUDIO } from "@/lib/nav";
 import { scheduleSummary, sessionDescription } from "@/lib/session-summary";
 import { Icon } from "../Icon";
 import { Card } from "../ui/Card";
+import { CancellationPolicy } from "./CancellationPolicy";
 
 /** Post-submit state of the review step (no backend: the reservation lives in local state). */
 export function Confirmation() {
@@ -18,7 +19,9 @@ export function Confirmation() {
   const { bookings } = useDatabase();
   const confirmation = state.confirmation!;
   // The booking's live status, so a cancellation (by the client or the studio) or completion shows here too.
-  const status = bookings.find((b) => b.id === confirmation.reference)?.status ?? "upcoming";
+  const booking = bookings.find((b) => b.id === confirmation.reference);
+  const status = booking?.status ?? "upcoming";
+  const card = booking?.payment?.card;
   const active = status === "upcoming";
   const schedule = scheduleSummary(state, totalMinutes);
   const firstName = state.intake.fullName.trim().split(/\s+/)[0];
@@ -87,7 +90,16 @@ export function Confirmation() {
           <span className="font-title-lg text-title-lg text-primary">Total Investment</span>
           <span className="font-headline-md text-headline-md text-primary">{formatPrice(totalPrice, true)}</span>
         </div>
+        {card && (
+          <p className="flex items-center gap-2 font-body-sm text-body-sm text-on-surface-variant">
+            <Icon name="lock" className="text-[16px] text-primary" />
+            {card.brand} ending {card.last4} on file
+            {booking?.payment?.status === "card-on-file" ? " · not charged yet" : ""}
+          </p>
+        )}
       </Card>
+
+      {active && <CancellationPolicy intake={state.intake} />}
 
       {event && (
         <Card className="space-y-3">

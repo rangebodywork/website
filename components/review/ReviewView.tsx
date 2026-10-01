@@ -12,7 +12,9 @@ import { Icon } from "../Icon";
 import { validateHealthRecord } from "../intake/HealthRecord";
 import { StickyActionBar } from "../StickyActionBar";
 import { Card, CardHeader } from "../ui/Card";
+import { CancellationPolicy } from "./CancellationPolicy";
 import { Confirmation } from "./Confirmation";
+import { SaveCardStep } from "./SaveCardStep";
 import { SessionItinerary } from "./SessionItinerary";
 
 export function ReviewView() {
@@ -199,19 +201,9 @@ export function ReviewView() {
           </div>
 
           <div className="space-y-6 lg:sticky lg:top-24">
-            {/* Policy */}
-            <section className="flex items-start gap-3.5 rounded-xl border border-surface-variant/60 bg-surface-container-lowest p-4">
-              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary-fixed/50 text-secondary">
-                <Icon name="shield" className="text-[20px]" />
-              </div>
-              <div>
-                <h3 className="font-title-md text-title-md text-on-surface">Peace-of-Mind 24-Hour Policy</h3>
-                <p className="mt-0.5 font-body-sm text-body-sm leading-relaxed text-on-surface-variant">
-                  We understand life shifts. Cancel or reschedule with zero fee up to 24 hours prior
-                  {schedule ? ` to ${schedule.cancelBy}` : " to your session"}.
-                </p>
-              </div>
-            </section>
+            <CancellationPolicy intake={state.intake} />
+
+            <SaveCardStep />
 
             {/* Investment */}
             <Card className="space-y-3">
@@ -324,7 +316,15 @@ export function ReviewView() {
       </main>
 
       <StickyActionBar className="flex flex-col gap-2 p-4 md:max-w-2xl lg:max-w-6xl lg:px-8">
-        {intakeComplete ? (
+        {intakeComplete && !state.savedCard ? (
+          <button
+            type="button"
+            disabled
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-surface-container-high px-6 py-3.5 font-title-md text-title-md text-on-surface-variant lg:ml-auto lg:max-w-md"
+          >
+            Save a card on file to reserve
+          </button>
+        ) : intakeComplete ? (
           <button
             type="button"
             onClick={actions.confirm}
@@ -344,7 +344,7 @@ export function ReviewView() {
         )}
         <div className="flex items-center justify-center gap-1.5 text-center font-label-sm text-label-sm text-on-surface-variant lg:ml-auto lg:max-w-md">
           <Icon name="lock" className="text-[14px] text-primary" />
-          <span>Secure reservation • No card charged until conclusion</span>
+          <span>Card saved on file • No charge until your session</span>
         </div>
       </StickyActionBar>
     </>
