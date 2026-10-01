@@ -330,7 +330,19 @@ function workshopWhen(w: Workshop): string {
 
 function WorkshopForm({ initial, isNew, onClose }: { initial: Workshop; isNew: boolean; onClose: () => void }) {
   const [item, setItem] = useState(initial);
+  // Once the admin types in "When", their text wins; otherwise it follows the date and time.
+  const [whenEdited, setWhenEdited] = useState(false);
   const set = <K extends keyof Workshop>(key: K, value: Workshop[K]) => setItem((w) => ({ ...w, [key]: value }));
+
+  function resolveWhen(): string {
+    if (whenEdited && item.when.trim()) return item.when.trim();
+    const timingChanged =
+      item.date !== initial.date ||
+      item.startMinutes !== initial.startMinutes ||
+      item.durationMinutes !== initial.durationMinutes;
+    // Untouched timing keeps a hand-written label (e.g. one naming the room); changed timing would make it stale.
+    return timingChanged || !item.when.trim() ? workshopWhen(item) : item.when;
+  }
 
   return (
     <FormShell
@@ -339,7 +351,7 @@ function WorkshopForm({ initial, isNew, onClose }: { initial: Workshop; isNew: b
       onSubmit={() => {
         const id = isNew ? newId(item.title) : item.id;
         const priceNote = item.priceNote?.trim() || undefined;
-        void repository.upsertWorkshop({ ...item, id, priceNote, when: item.when.trim() || workshopWhen(item) });
+        void repository.upsertWorkshop({ ...item, id, priceNote, when: resolveWhen() });
         onClose();
       }}
     >
@@ -391,8 +403,16 @@ function WorkshopForm({ initial, isNew, onClose }: { initial: Workshop; isNew: b
       <Field id="workshop-priceNote" label="Price note (optional)" hint="e.g. materials inc.">
         <input id="workshop-priceNote" value={item.priceNote ?? ""} onChange={(e) => set("priceNote", e.target.value)} className={inputClass} />
       </Field>
-      <Field id="workshop-when" label="When (display)" hint="Leave blank to generate from date and time">
-        <input id="workshop-when" value={item.when} onChange={(e) => set("when", e.target.value)} className={inputClass} />
+      <Field id="workshop-when" label="When (display)" hint="Follows date and time unless you edit it here">
+        <input
+          id="workshop-when"
+          value={item.when}
+          onChange={(e) => {
+            setWhenEdited(true);
+            set("when", e.target.value);
+          }}
+          className={inputClass}
+        />
       </Field>
       <div className="md:col-span-2">
         <Field id="workshop-venue" label="Venue">

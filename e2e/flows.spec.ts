@@ -192,6 +192,17 @@ test("customer and admin flows", async ({ page }) => {
     await page.getByLabel("Price (USD)").fill("95");
     await page.getByRole("button", { name: "Save" }).click();
     await expect.poll(async () => (await findWorkshop()).map((w: { price: number }) => w.price)).toEqual([95]);
+
+    // Moving the date regenerates the display text; typing in "When" overrides it.
+    await page.getByRole("button", { name: "Edit E2E Workshop" }).click();
+    await page.getByLabel("Date").fill("2026-12-12");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect.poll(async () => (await findWorkshop())[0]?.when).toMatch(/Dec 12/);
+    await page.getByRole("button", { name: "Edit E2E Workshop" }).click();
+    await page.getByLabel("Date").fill("2026-12-19");
+    await page.getByLabel("When (display)").fill("Saturday mornings in December");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect.poll(async () => (await findWorkshop())[0]).toMatchObject({ date: "2026-12-19", when: "Saturday mornings in December" });
   });
 
   await test.step("/schedule shows the admin's classes and workshops", async () => {
