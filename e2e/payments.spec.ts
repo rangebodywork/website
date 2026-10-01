@@ -83,8 +83,10 @@ test("booking saves a card on file without charging it", async ({ page }) => {
 
   await test.step("review shows the placeholder policy and needs a card before confirming", async () => {
     await expect(page.getByText("Placeholder wording")).toBeVisible();
-    await expect(page.getByText("No charge happens now.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Save a card on file to reserve" })).toBeDisabled();
+    await expect(page.getByText("No charge happens now.", { exact: true })).toBeVisible();
+    const reserve = page.getByRole("button", { name: "Save a card on file to reserve" });
+    await expect(reserve).toHaveAttribute("aria-disabled", "true");
+    await expect(reserve).toHaveAccessibleDescription("Save a card in the Card on file section first. No charge happens now.");
     await expect(page.getByRole("button", { name: "Save card on file" })).toBeDisabled(); // consent first
   });
 
