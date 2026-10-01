@@ -28,7 +28,7 @@ export interface ConfirmedBooking {
 
 export interface AppDatabase {
   version: 1;
-  modalities: Record<string, Modality>;
+  modalities: Record<ModalityId, Modality>;
   rituals: Ritual[];
   classes: RecurringClass[];
   workshops: Workshop[];

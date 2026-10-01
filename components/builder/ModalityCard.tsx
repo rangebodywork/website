@@ -30,10 +30,9 @@ function GuideButton({ onClick, name }: { onClick: () => void; name: string }) {
 }
 
 export function ModalityCard({ id, active, onInteract, onOpenGuide }: ModalityCardProps) {
-  const db = useDatabase();
-  const MODALITIES = db.modalities;
+  const { modalities } = useDatabase();
   const { state, actions } = useBooking();
-  const modality = MODALITIES[id];
+  const modality = modalities[id];
   const selection = state.modalities[id];
 
   if (!selection.enabled) {

@@ -26,11 +26,10 @@ function GuideFact({ icon, iconClass, title, children }: { icon: IconName; iconC
 
 /** Bottom sheet explaining a modality (from builder variant 2). */
 export function ModalityGuideSheet({ id, onClose }: ModalityGuideSheetProps) {
-  const db = useDatabase();
-  const MODALITIES = db.modalities;
+  const { modalities } = useDatabase();
   const { actions } = useBooking();
   const closeRef = useRef<HTMLButtonElement>(null);
-  const guide = id ? MODALITIES[id].guide : undefined;
+  const guide = id ? modalities[id].guide : undefined;
 
   useEffect(() => {
     if (!guide) return;

@@ -11,12 +11,10 @@ import { WorkshopCard } from "./WorkshopCard";
 
 export function ScheduleView() {
   const db = useDatabase();
-  const RECURRING_CLASSES = db.classes;
-  const WORKSHOPS = db.workshops;
   const [filter, setFilter] = useState<ScheduleCategory | "all">("all");
   const matches = (categories: ScheduleCategory[]) => filter === "all" || categories.includes(filter);
-  const classes = RECURRING_CLASSES.filter((c) => matches(c.categories));
-  const workshops = WORKSHOPS.filter((w) => matches(w.categories));
+  const classes = db.classes.filter((c) => matches(c.categories));
+  const workshops = db.workshops.filter((w) => matches(w.categories));
 
   return (
     <main className="mx-auto max-w-4xl space-y-8 px-4 pb-12 pt-4 sm:px-6 md:px-8">

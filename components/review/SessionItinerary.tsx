@@ -11,8 +11,7 @@ import { Card, CardHeader } from "../ui/Card";
 
 /** "Mindful Timeline" — hollow river-stone nodes, grounding transition before the final block. */
 export function SessionItinerary({ blocks }: { blocks: SessionBlock[] }) {
-  const db = useDatabase();
-  const MODALITIES = db.modalities;
+  const { modalities } = useDatabase();
   return (
     <Card className="space-y-4">
       <CardHeader
@@ -23,7 +22,7 @@ export function SessionItinerary({ blocks }: { blocks: SessionBlock[] }) {
         {blocks.map((block, index) => {
           const last = index === blocks.length - 1;
           const first = index === 0;
-          const modality = MODALITIES[block.id];
+          const modality = modalities[block.id];
           return (
             <Fragment key={block.id}>
               {last && blocks.length > 1 && (
