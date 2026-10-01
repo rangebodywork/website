@@ -174,6 +174,10 @@ const actions = {
   syncRescheduled(bookingId: string, date: string, slot: TimeSlotId) {
     updateState((s) => (s.bookingId === bookingId ? { ...s, intake: { ...s.intake, date, slot } } : s));
   },
+  /** A booking cancelled from My bookings no longer confirms the session it came from. */
+  syncCancelled(bookingId: string) {
+    updateState((s) => (s.bookingId === bookingId ? { ...s, confirmation: null } : s));
+  },
   /** Starts a fresh session, keeping the client's contact details and saved classes. */
   startOver() {
     updateState((s) => ({

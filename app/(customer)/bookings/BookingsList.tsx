@@ -133,7 +133,10 @@ function BookingCard({ booking, editable, today }: { booking: ConfirmedBooking; 
           <div className="mt-3 flex gap-2">
             <button
               type="button"
-              onClick={() => void repository.setBookingStatus(booking.id, "cancelled")}
+              onClick={() => {
+                void repository.setBookingStatus(booking.id, "cancelled");
+                actions.syncCancelled(booking.id);
+              }}
               className="rounded-lg bg-error px-4 py-2 text-on-error"
             >
               Yes, cancel booking

@@ -130,6 +130,28 @@ test("customer and admin flows", async ({ page }) => {
     expect((await past.innerText()).toLowerCase()).toContain("cancelled");
   });
 
+  await test.step("a cancelled booking no longer shows as confirmed on /review", async () => {
+    await go(page, "/review");
+    await expect(page.getByText(/Reference SOMA-/)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Confirm & Reserve/ })).toBeVisible();
+  });
+
+  await test.step("an admin status change shows on the customer's confirmation", async () => {
+    await page.getByRole("button", { name: /Confirm & Reserve/ }).click();
+    await expect(page.getByText(/Reference SOMA-/).first()).toBeVisible();
+    const db = await readDb(page);
+    expect(db.bookings).toHaveLength(2); // the cancelled one is history; this is a new booking
+    const latest = db.bookings.find((b: { status: string }) => b.status === "upcoming");
+    await go(page, "/admin/bookings");
+    await page.getByRole("combobox", { name: /^Status for/ }).first().waitFor();
+    const select = page.locator("table").getByRole("combobox", { name: /^Status for/ });
+    const rows = page.locator("table tbody tr");
+    const index = await rows.evaluateAll((trs, id) => trs.findIndex((tr) => tr.textContent?.includes(id)), latest.id);
+    await select.nth(index).selectOption("completed");
+    await go(page, "/review");
+    await expect(page.getByRole("heading", { name: "This session is complete" })).toBeVisible();
+  });
+
   await test.step("admin adds and edits a class", async () => {
     await go(page, "/admin/schedule");
     await page.getByRole("button", { name: "Add Class" }).click();

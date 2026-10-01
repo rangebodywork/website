@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useBooking } from "@/lib/booking-context";
+import { useDatabase } from "@/lib/db-context";
 import { formatDuration, formatPrice } from "@/lib/format";
 import { downloadIcs, googleCalendarUrl, type CalendarEvent } from "@/lib/ics";
 import { ROUTES, STUDIO } from "@/lib/nav";
@@ -14,11 +15,15 @@ import { Card } from "../ui/Card";
 export function Confirmation() {
   const router = useRouter();
   const { state, actions, blocks, totalMinutes, totalPrice } = useBooking();
+  const { bookings } = useDatabase();
   const confirmation = state.confirmation!;
+  // The booking's live status, so a cancellation (by the client or the studio) or completion shows here too.
+  const status = bookings.find((b) => b.id === confirmation.reference)?.status ?? "upcoming";
+  const active = status === "upcoming";
   const schedule = scheduleSummary(state, totalMinutes);
   const firstName = state.intake.fullName.trim().split(/\s+/)[0];
 
-  const event: CalendarEvent | null = schedule && {
+  const event: CalendarEvent | null = active && schedule ? {
     uid: confirmation.reference,
     title: "Soma Studio · Custom Sanctuary Session with Elena Vance",
     description: `${sessionDescription(blocks)}\n\nReference ${confirmation.reference}`,
@@ -26,7 +31,7 @@ export function Confirmation() {
     date: schedule.date,
     startMinutes: schedule.startMinutes,
     durationMinutes: totalMinutes,
-  };
+  } : null;
 
   return (
     <main className="mx-auto w-full max-w-lg space-y-6 px-4 pb-10 pt-8 md:max-w-2xl">
@@ -35,11 +40,20 @@ export function Confirmation() {
           <Icon name="event_available" className="text-3xl" />
         </div>
         <h1 className="font-headline-lg-mobile text-headline-lg-mobile font-medium tracking-tight text-primary md:font-headline-lg md:text-headline-lg">
-          {firstName ? `Your sanctuary awaits, ${firstName}` : "Your sanctuary awaits"}
+          {!active
+            ? status === "cancelled"
+              ? "This session was cancelled"
+              : "This session is complete"
+            : firstName
+              ? `Your sanctuary awaits, ${firstName}`
+              : "Your sanctuary awaits"}
         </h1>
         <p className="mx-auto max-w-sm font-body-sm text-body-sm text-on-surface-variant">
-          Your session is reserved. Elena will reach out personally before you arrive — no card is charged until
-          your session concludes.
+          {active
+            ? "Your session is reserved. Elena will reach out personally before you arrive — no card is charged until your session concludes."
+            : status === "cancelled"
+              ? "This reservation is no longer held. Build a new session whenever you are ready."
+              : "Thank you for practising with us. Build your next session whenever you are ready."}
         </p>
         <span className="inline-flex rounded-full border border-outline-variant/40 bg-surface-container-low px-3 py-1 font-label-md text-label-md tracking-wider text-primary">
           Reference {confirmation.reference}
