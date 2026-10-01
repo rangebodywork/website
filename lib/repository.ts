@@ -2,6 +2,14 @@ import { MODALITIES, RITUALS, type Modality, type ModalityId, type Ritual, type 
 import { RECURRING_CLASSES, WORKSHOPS, type RecurringClass, type Workshop } from "./schedule-data";
 import type { SessionBlock } from "./booking-context";
 import { STORAGE_KEY as BOOKING_STORAGE_KEY, parseBookingState, type BookingState } from "./booking-store";
+import {
+  DEFAULT_PAYMENT_SETTINGS,
+  statusFor,
+  type BookingPayment,
+  type PaymentRecord,
+  type PaymentSettings,
+  type PaymentStatus,
+} from "./payments/policy";
 
 /** The client's own contact record, kept apart from any one session's intake. */
 export interface Profile {
@@ -24,6 +32,8 @@ export interface ConfirmedBooking {
   totalPrice?: number;
   /** Contact details copied at confirmation time. */
   profile?: Profile;
+  /** Card-on-file reference and charge history. Absent for bookings made before payments existed. */
+  payment?: BookingPayment;
 }
 
 export interface AppDatabase {
@@ -34,6 +44,7 @@ export interface AppDatabase {
   workshops: Workshop[];
   bookings: ConfirmedBooking[];
   profile: Profile;
+  paymentSettings: PaymentSettings;
 }
 
 /**
@@ -52,6 +63,8 @@ export interface Repository {
   addBooking(booking: ConfirmedBooking): Promise<void>;
   setBookingStatus(id: string, status: BookingStatus): Promise<void>;
   rescheduleBooking(id: string, date: string, slot: TimeSlotId): Promise<void>;
+  /** Appends a charge attempt to the booking's payment history and updates its payment status. */
+  recordPayment(id: string, record: PaymentRecord): Promise<void>;
 
   upsertClass(item: RecurringClass): Promise<void>;
   deleteClass(id: string): Promise<void>;
@@ -63,6 +76,9 @@ export interface Repository {
 
   getProfile(): Profile;
   saveProfile(profile: Profile): Promise<void>;
+
+  getPaymentSettings(): PaymentSettings;
+  savePaymentSettings(settings: PaymentSettings): Promise<void>;
 }
 
 export const DEFAULT_DB: AppDatabase = {
@@ -73,6 +89,7 @@ export const DEFAULT_DB: AppDatabase = {
   workshops: WORKSHOPS,
   bookings: [],
   profile: EMPTY_PROFILE,
+  paymentSettings: DEFAULT_PAYMENT_SETTINGS,
 };
 
 const STORAGE_KEY = "soma-studio:db";
@@ -100,6 +117,7 @@ interface PersistedDatabase {
   workshops: Workshop[];
   bookings: ConfirmedBooking[];
   profile: Profile;
+  paymentSettings: PaymentSettings;
 }
 
 const BOOKING_STATUSES: BookingStatus[] = ["upcoming", "completed", "cancelled"];
@@ -165,6 +183,50 @@ const isBooking = (b: Record<string, unknown>) =>
   isRecord(b.state.modalities) &&
   isRecord(b.state.intake);
 
+const PAYMENT_STATUSES: PaymentStatus[] = ["card-on-file", "charged", "fee-charged", "failed"];
+
+const isFiniteNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+
+function isPaymentRecord(r: unknown): r is PaymentRecord {
+  return (
+    isRecord(r) &&
+    hasStrings(r, ["id", "at"]) &&
+    (r.kind === "session" || r.kind === "late-cancel-fee") &&
+    isFiniteNumber(r.amount) &&
+    typeof r.ok === "boolean"
+  );
+}
+
+/** A malformed payment record is dropped rather than discarding the whole booking. */
+function parsePayment(value: unknown): BookingPayment | undefined {
+  if (!isRecord(value) || !isRecord(value.card)) return undefined;
+  if (!hasStrings(value.card, ["customerProfileId", "paymentProfileId", "last4", "brand"])) return undefined;
+  if (!PAYMENT_STATUSES.includes(value.status as PaymentStatus)) return undefined;
+  const { customerProfileId, paymentProfileId, last4, brand } = value.card as Record<string, string>;
+  return {
+    card: { customerProfileId, paymentProfileId, last4, brand },
+    status: value.status as PaymentStatus,
+    transactions: Array.isArray(value.transactions) ? value.transactions.filter(isPaymentRecord) : [],
+  };
+}
+
+function parseBookings(value: unknown): ConfirmedBooking[] {
+  return parseList<ConfirmedBooking>(value, [], isBooking).map((b) => ({ ...b, payment: parsePayment(b.payment) }));
+}
+
+function parsePaymentSettings(value: unknown): PaymentSettings {
+  if (!isRecord(value)) return DEFAULT_PAYMENT_SETTINGS;
+  const d = DEFAULT_PAYMENT_SETTINGS;
+  return {
+    cancellationFee: isFiniteNumber(value.cancellationFee) && value.cancellationFee >= 0 ? value.cancellationFee : d.cancellationFee,
+    cancellationWindowHours:
+      isFiniteNumber(value.cancellationWindowHours) && value.cancellationWindowHours >= 0
+        ? value.cancellationWindowHours
+        : d.cancellationWindowHours,
+    policyText: typeof value.policyText === "string" && value.policyText.trim() ? value.policyText : d.policyText,
+  };
+}
+
 function parse(raw: string | null): AppDatabase {
   if (!raw) return DEFAULT_DB;
   try {
@@ -177,10 +239,11 @@ function parse(raw: string | null): AppDatabase {
       rituals: RITUALS,
       classes: parseList(data.classes, RECURRING_CLASSES, isClass),
       workshops: parseList(data.workshops, WORKSHOPS, isWorkshop),
-      bookings: parseList(data.bookings, [], isBooking),
+      bookings: parseBookings(data.bookings),
       profile: isRecord(data.profile) && hasStrings(data.profile, ["fullName", "phone", "emergencyContact"])
         ? (data.profile as unknown as Profile)
         : EMPTY_PROFILE,
+      paymentSettings: parsePaymentSettings(data.paymentSettings),
     };
   } catch {
     return DEFAULT_DB;
@@ -200,6 +263,7 @@ function serialize(db: AppDatabase): string {
     workshops: db.workshops,
     bookings: db.bookings,
     profile: db.profile,
+    paymentSettings: db.paymentSettings,
   };
   return JSON.stringify(persisted);
 }
@@ -307,6 +371,12 @@ export function createLocalStorageRepository(): Repository {
     setBookingStatus: (id, status) => patchBooking(id, (b) => ({ ...b, status })),
     rescheduleBooking: (id, date, slot) =>
       patchBooking(id, (b) => ({ ...b, state: { ...b.state, intake: { ...b.state.intake, date, slot } } })),
+    recordPayment: (id, record) =>
+      patchBooking(id, (b) =>
+        b.payment
+          ? { ...b, payment: { ...b.payment, status: statusFor(record), transactions: [...b.payment.transactions, record] } }
+          : b,
+      ),
 
     upsertClass: (item) => write((db) => ({ ...db, classes: upsertById(db.classes, item) })),
     deleteClass: (id) => write((db) => ({ ...db, classes: db.classes.filter((c) => c.id !== id) })),
@@ -318,6 +388,9 @@ export function createLocalStorageRepository(): Repository {
 
     getProfile: () => read().profile,
     saveProfile: (profile) => write((db) => ({ ...db, profile })),
+
+    getPaymentSettings: () => read().paymentSettings,
+    savePaymentSettings: (paymentSettings) => write((db) => ({ ...db, paymentSettings })),
   };
 }
 
