@@ -64,8 +64,14 @@ export function PasscodeGate({ children }: { children: ReactNode }) {
         <h1 className="font-title-lg text-primary mb-2">Admin Access</h1>
         <p className="text-body-sm text-on-surface-variant mb-6">Demo environment. Use passcode 0000.</p>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <label htmlFor="admin-passcode" className="sr-only">
+            Admin passcode
+          </label>
           <input
+            id="admin-passcode"
             type="password"
+            aria-invalid={error}
+            aria-describedby={error ? "admin-passcode-error" : undefined}
             value={code}
             onChange={(e) => {
               setCode(e.target.value);
@@ -75,7 +81,11 @@ export function PasscodeGate({ children }: { children: ReactNode }) {
             className="w-full rounded-lg border border-outline-variant bg-surface p-3 text-center tracking-widest text-on-surface outline-none focus:border-primary"
             autoFocus
           />
-          {error && <p className="text-error text-label-sm">Incorrect passcode</p>}
+          {error && (
+            <p id="admin-passcode-error" role="alert" className="text-error text-label-sm">
+              Incorrect passcode
+            </p>
+          )}
           <button type="submit" className="w-full rounded-lg bg-primary py-3 font-label-md text-on-primary hover:bg-primary-container">
             Enter
           </button>

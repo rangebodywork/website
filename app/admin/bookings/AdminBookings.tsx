@@ -61,6 +61,7 @@ function StatusSelect({ booking }: { booking: ConfirmedBooking }) {
   return (
     <select
       value={booking.status}
+      aria-label={`Status for ${clientName(booking)}`}
       onChange={(e) => void repository.setBookingStatus(booking.id, e.target.value as BookingStatus)}
       className="rounded-lg border border-outline-variant bg-surface px-3 py-1 text-on-surface text-label-sm uppercase"
     >
@@ -128,6 +129,7 @@ export function AdminBookings() {
         <h1 className="text-headline-sm text-primary">Bookings</h1>
         <select
           value={filter}
+          aria-label="Filter bookings by status"
           onChange={(e) => setFilter(e.target.value)}
           className="rounded-lg border border-outline-variant bg-surface p-2 text-on-surface"
         >
