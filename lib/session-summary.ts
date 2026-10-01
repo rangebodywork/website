@@ -1,7 +1,7 @@
 import { MOVEMENT_GOALS, PRESSURE_INTENT, TIME_SLOTS } from "./catalog";
 import type { BookingState } from "./booking-store";
 import type { SessionBlock } from "./booking-context";
-import { addDays, formatClock, formatDate, formatTimeRange } from "./format";
+import { formatDate, formatTimeRange } from "./format";
 
 export function slotFor(state: BookingState) {
   return TIME_SLOTS.find((s) => s.id === state.intake.slot) ?? TIME_SLOTS[0];
@@ -27,7 +27,6 @@ export function scheduleSummary(state: BookingState, totalMinutes: number) {
     startMinutes: slot.startMinutes,
     dayLabel: formatDate(date, { weekday: "long", month: "short", day: "numeric" }),
     timeLabel: formatTimeRange(slot.startMinutes, totalMinutes),
-    cancelBy: `${formatClock(slot.startMinutes)} on ${formatDate(addDays(date, -1), { month: "short", day: "numeric" })}`,
   };
 }
 
