@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
-import { priceFor, resolveDuration, type Modality, type ModalityId, type Ritual } from "./catalog";
+import { priceFor, resolveDuration, type Modality, type ModalityId, type Ritual, type TimeSlotId } from "./catalog";
 import { useDatabase } from "./db-context";
 import { repository } from "./repository";
 import {
@@ -169,6 +169,10 @@ const actions = {
       totalPrice: blocks.reduce((sum, b) => sum + b.price, 0),
       profile,
     });
+  },
+  /** Mirrors a reschedule from My bookings into the session it was booked from, keeping its confirmation. */
+  syncRescheduled(bookingId: string, date: string, slot: TimeSlotId) {
+    updateState((s) => (s.bookingId === bookingId ? { ...s, intake: { ...s.intake, date, slot } } : s));
   },
   /** Starts a fresh session, keeping the client's contact details and saved classes. */
   startOver() {
