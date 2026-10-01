@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { priceFor, type ModalityId } from "./catalog";
+import { useDatabase } from "./db-context";
 import { repository } from "./repository";
 import {
   DEFAULT_STATE,
@@ -134,12 +135,13 @@ const BookingContext = createContext<BookingContextValue | null>(null);
 
 export function BookingProvider({ children }: { children: ReactNode }) {
   const state = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { modalities } = useDatabase();
 
   const value = useMemo<BookingContextValue>(() => {
+    const MODALITIES = modalities;
     const blocks = state.sequence
       .filter((id) => state.modalities[id]?.enabled)
       .map((id) => {
-        const MODALITIES = repository.getSnapshot().modalities;
         const sel = state.modalities[id];
         return {
           id,
@@ -156,7 +158,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
       totalMinutes: blocks.reduce((sum, b) => sum + b.duration, 0),
       totalPrice: blocks.reduce((sum, b) => sum + b.price, 0),
     };
-  }, [state]);
+  }, [state, modalities]);
 
   return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;
 }

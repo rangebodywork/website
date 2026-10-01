@@ -1,5 +1,5 @@
-import { repository } from "./repository";
 import {
+  MODALITIES,
   MODALITY_ORDER,
   MOVEMENT_GOALS,
   type ConsentId,
@@ -47,6 +47,7 @@ export interface BookingState {
   confirmation: Confirmation | null;
 }
 
+/** Built from the static catalog so the default state is identical on server and client. */
 function defaultModalities(): Record<ModalityId, ModalitySelection> {
   const enabled: ModalityId[] = ["coaching", "training", "massage"];
   return Object.fromEntries(
@@ -54,8 +55,8 @@ function defaultModalities(): Record<ModalityId, ModalitySelection> {
       id,
       {
         enabled: enabled.includes(id),
-        duration: repository.getSnapshot().modalities[id].defaultDuration,
-        option: repository.getSnapshot().modalities[id].options?.defaultChoice,
+        duration: MODALITIES[id].defaultDuration,
+        option: MODALITIES[id].options?.defaultChoice,
       },
     ]),
   ) as Record<ModalityId, ModalitySelection>;
