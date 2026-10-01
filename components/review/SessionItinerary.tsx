@@ -1,3 +1,5 @@
+"use client";
+
 import { Fragment } from "react";
 import { TRANSITION_MINUTES } from "@/lib/catalog";
 import { useDatabase } from "@/lib/db-context";
