@@ -1,3 +1,4 @@
+import "server-only";
 import { AuthorizeNetGateway } from "./authorize-net-gateway";
 import { profileSecret } from "./binding";
 import { PaymentGatewayNotConfiguredError, type PaymentGateway } from "./gateway";

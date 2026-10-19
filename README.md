@@ -27,7 +27,7 @@ Other scripts:
 | `npm run lint`  | ESLint (`eslint-config-next` core-web-vitals + TypeScript)            |
 | `npm run icons` | Re-download the Material Symbols subset (see [Icons](#icons))         |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run test:unit` | Unit tests (`node:test` under `tsx`) for the payment gateway, with a mocked `fetch` |
+| `npm run test:unit` | Unit tests (`node:test` under `tsx`) for the payment gateway, with a mocked `fetch`. Run with `--conditions=react-server` so the server-only payment modules can be imported outside Next.js |
 | `npm run payments:check` | Checks the Authorize.net keys in `.env.local` with `authenticateTestRequest` (no money moves). Prints the environment, a masked login ID and pass/fail, never the keys |
 | `npm run test:e2e` | Build, start the production server on port 4300 and run the Playwright suite in `e2e/` |
 

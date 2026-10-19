@@ -1,3 +1,4 @@
+import "server-only";
 import { createHash } from "node:crypto";
 import {
   GENERIC_PAYMENT_ERROR,

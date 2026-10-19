@@ -1,3 +1,4 @@
+import "server-only";
 import { AuthorizeNetGateway } from "./authorize-net-gateway";
 import { PaymentGatewayError, PaymentGatewayNotConfiguredError, type GatewayMode } from "./gateway";
 import { selectPaymentGateway } from "./index";
