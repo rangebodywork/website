@@ -26,6 +26,9 @@ Other scripts:
 | `npm start`     | Serve the production build (`PORT=4000 npm start` to change the port). Payments fail closed here; use `PAYMENTS_ALLOW_STUB=1 npm start` to try them with the stub |
 | `npm run lint`  | ESLint (`eslint-config-next` core-web-vitals + TypeScript)            |
 | `npm run icons` | Re-download the Material Symbols subset (see [Icons](#icons))         |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run test:unit` | Unit tests (`node:test` under `tsx`) for the payment gateway, with a mocked `fetch` |
+| `npm run payments:check` | Checks the Authorize.net keys in `.env.local` with `authenticateTestRequest` (no money moves). Prints the environment, a masked login ID and pass/fail, never the keys |
 | `npm run test:e2e` | Build, start the production server on port 4300 and run the Playwright suite in `e2e/` |
 
 ### End-to-end tests
@@ -45,6 +48,10 @@ Other scripts:
   (test card 4000 0000 0000 0002). Further cases: the exact 24-hour boundary (with a pinned clock), free
   reschedules, no fee once the session has been charged, re-confirming with a new card without charging twice,
   and an admin retrying a declined late-cancel fee.
+- `sandbox.spec.ts` runs the same journey against the Authorize.net **sandbox**: save a card in the hosted form,
+  book with no charge, charge the session, charge a late-cancel fee. It runs on a second server (port 4301) only
+  when sandbox keys are set in the shell or `.env.local`, and is skipped otherwise. The stub suite always runs on
+  a server forced onto the stub, even when `.env.local` has keys.
 
 It runs in the locally installed Google Chrome (`channel: "chrome"`), so no browser download is needed. To use
 Playwright's bundled Chromium instead, run `npx playwright install chromium` and set `PW_CHANNEL=chromium`. Set
@@ -66,9 +73,10 @@ Playwright's bundled Chromium instead, run `npx playwright install chromium` and
 
 Pages are prerendered as static content; `/api/payments/*` are server functions. Payments fail closed on
 Vercel: preview and production deployments both run with `NODE_ENV=production`, so without Authorize.net keys
-the payment routes answer 503. For a demo deployment on the stub, set `PAYMENTS_ALLOW_STUB=1`. When keys arrive,
-add the `AUTHORIZE_NET_*` variables (see [Payments](#payments)) under **Project → Settings → Environment
-Variables**. Do not give them a `NEXT_PUBLIC_` prefix.
+the payment routes answer 503. For a demo deployment on the stub, set `PAYMENTS_ALLOW_STUB=1`. Add the
+`AUTHORIZE_NET_*` variables under **Project → Settings → Environment Variables**: sandbox keys in **Preview**
+only, and nothing in **Production** for now (see [Environment variables](#environment-variables)). Do not give
+them a `NEXT_PUBLIC_` prefix. `GET /api/payments/health` on any deployment reports whether its keys work.
 
 ## Route map
 
@@ -220,8 +228,9 @@ docs/                original Stitch exports (unchanged); payments.md (payments 
 
 ## Payments
 
-Payments go through Authorize.net, with the merchant account through Chase. **There are no test keys yet, so
-everything runs against a stub gateway.** The design, its sources and the questions for the owner are in
+Payments go through Authorize.net, with the merchant account through Chase. Without keys everything runs against
+a stub gateway; with sandbox keys, against the Authorize.net sandbox. **Production is refused** until the go-live
+checklist is done. The design, its sources, the manual sandbox test flow and the questions for the owner are in
 [`docs/payments.md`](docs/payments.md).
 
 The business rules, and how they are built:
@@ -244,13 +253,18 @@ How it fits together:
 - `lib/payments/stub-gateway.ts` holds `StubPaymentGateway`, which is stateless, predictable and logs as
   `[payments:stub]`. Test cards: 4111 1111 1111 1111 approves, and 4000 0000 0000 0002 saves but is declined
   when charged. Any amount ending in `.13` is also declined.
-- `lib/payments/authorize-net-gateway.ts` holds `AuthorizeNetGateway`, a skeleton over the JSON API (no SDK).
-  Each method throws `PaymentGatewayNotConfiguredError` and has a TODO linking to the relevant doc section.
+- `lib/payments/authorize-net-gateway.ts` holds `AuthorizeNetGateway`, over the JSON API (no SDK): customer
+  profiles, the Accept Customer hosted "add payment" page, merchant-initiated card-on-file charges with a
+  duplicate window, purchase, void, refund and `authenticateTestRequest`.
 - `lib/payments/index.ts`: `getPaymentGateway()` uses Authorize.net when the login ID and transaction key are
-  set, and the stub otherwise.
-- `app/api/payments/*` holds the route handlers the browser calls: `card-form`, `stored-card`, `charge` and
-  `status`, plus `stub/hosted-form`, which stands in for the hosted card page and returns 404 when a real
-  gateway is configured. The browser never talks to Authorize.net directly.
+  set, and the stub otherwise. `AUTHORIZE_NET_ENV=production` is refused unless
+  `AUTHORIZE_NET_ALLOW_PRODUCTION=1`.
+- `lib/payments/health.ts`: the credential check behind `npm run payments:check` and `/api/payments/health`.
+- `app/api/payments/*` holds the route handlers the browser calls: `card-form`, `stored-card`, `charge`,
+  `status` and `health`, plus `stub/hosted-form`, which stands in for the hosted card page and returns 404 when
+  a real gateway is configured. The browser never talks to the Authorize.net API directly; with a real gateway
+  `/review` shows Authorize.net's own card page in an iframe, and `public/payments/iframe-communicator.html`
+  relays its "saved" and "cancelled" events back.
 - `lib/payments/client.ts` holds browser helpers that call those routes and record each attempt through
   `repository.recordPayment`. `lib/payments/policy.ts` holds the late-cancel rule and the placeholder settings.
 
@@ -259,21 +273,26 @@ How it fits together:
 Copy `.env.example` to `.env.local`. Real `.env*` files are git-ignored. All of these are server-only, so never
 give them a `NEXT_PUBLIC_` prefix.
 
-| Variable | Purpose |
-| --- | --- |
-| `AUTHORIZE_NET_API_LOGIN_ID` | API Login ID. Leave it empty to use the stub. |
-| `AUTHORIZE_NET_TRANSACTION_KEY` | Transaction Key. Leave it empty to use the stub. |
-| `AUTHORIZE_NET_SIGNATURE_KEY` | Verifies webhook signatures (`X-ANET-Signature`). Not used until webhooks exist. |
-| `AUTHORIZE_NET_ENV` | `sandbox` (the default) or `production`. |
-| `PAYMENTS_ALLOW_STUB` | `1` lets a production runtime use the stub when the keys are empty. Leave it unset for real deployments. |
+| Variable | Purpose | Vercel environment |
+| --- | --- | --- |
+| `AUTHORIZE_NET_API_LOGIN_ID` | API Login ID. Leave it empty to use the stub. | Preview: **sandbox** login ID. Production: leave empty for now. |
+| `AUTHORIZE_NET_TRANSACTION_KEY` | Transaction Key. Leave it empty to use the stub. | Preview: **sandbox** key. Production: leave empty for now. |
+| `AUTHORIZE_NET_ENV` | `sandbox` (the default) or `production`. Anything else disables payments. | Preview: `sandbox`. Production: leave empty. |
+| `AUTHORIZE_NET_SIGNATURE_KEY` | Optional. Will verify webhook signatures (`X-ANET-Signature`); when set, the health check requires it to be 128 hex characters. | Preview: sandbox Signature Key, if you have it. Production: leave empty. |
+| `AUTHORIZE_NET_ALLOW_PRODUCTION` | `1` allows `AUTHORIZE_NET_ENV=production`. Without it production keys are refused and payments are disabled. **Do not set it until the go-live checklist in `docs/payments.md` is done** (server-side bookings and amounts, real admin auth). | Nowhere yet. |
+| `PAYMENTS_ALLOW_STUB` | `1` lets a production runtime use the stub when the keys are empty. | Only for a demo deployment. Never on the live site. |
 
 **Fail closed.** In production (`NODE_ENV=production`, which includes `npm start`, or `VERCEL_ENV=production`),
 the stub is refused when the keys are empty. Every payment route then answers 503, customers can't save a card,
-and `/admin/payments` shows a red "Payments are disabled" banner. `npm run dev` always allows the stub, and the
-e2e suite sets `PAYMENTS_ALLOW_STUB=1`. Whenever the stub is active, `/admin/payments` shows a red stub-mode banner.
+and `/admin/payments` shows a red "Payments are disabled" banner. The same happens with
+`AUTHORIZE_NET_ENV=production` unless `AUTHORIZE_NET_ALLOW_PRODUCTION=1`. `npm run dev` always allows the stub,
+and the e2e suite sets `PAYMENTS_ALLOW_STUB=1`. Whenever the stub is active, `/admin/payments` shows a red
+stub-mode banner.
 
-Setting the keys today switches to the skeleton, which answers 503 ("Payments are not set up yet") until
-`AuthorizeNetGateway` is implemented.
+**Checking keys.** `npm run payments:check` checks the keys in `.env.local`. `GET /api/payments/health` does the
+same on a deployment and returns `{ mode, credentialsOk, code, message }` with no secrets, cached for 60 seconds.
+If the keys fail, both say whether they work in the other environment ("These look like production keys but
+AUTHORIZE_NET_ENV=sandbox").
 
 ### Open questions for the owner
 

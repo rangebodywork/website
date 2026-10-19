@@ -1,9 +1,15 @@
 # Payments design note (Authorize.net, card on file)
 
-Status: **stub only**. We don't have Authorize.net test keys yet, so every
-payment call goes through `StubPaymentGateway`. `AuthorizeNetGateway` is a
-skeleton that throws "not configured" until it is built against the sandbox.
-Facts below were checked against Authorize.net's developer docs on 2026-10-01.
+Status: **sandbox-ready, production refused.** `AuthorizeNetGateway` is built
+against the JSON API. Without keys every payment call goes through
+`StubPaymentGateway`; with sandbox keys, through the Authorize.net sandbox.
+`AUTHORIZE_NET_ENV=production` is refused (payments disabled) unless
+`AUTHORIZE_NET_ALLOW_PRODUCTION=1`, which must not be set until the go-live
+checklist below is done. The gateway has only been exercised with mocked
+responses and a live sandbox auth *failure* (no sandbox keys yet): run the
+[manual sandbox test flow](#manual-sandbox-test-flow) once keys arrive.
+Facts below were checked against Authorize.net's developer docs on 2026-10-01,
+and the request fields again on 2026-10-19 against the API schema.
 
 ## Business rules (from the owner)
 
@@ -47,20 +53,26 @@ stored profile.
    booking**, so there is no earlier customer-initiated purchase for later
    charges to reference. The `liveMode` verification at save time is the
    card-on-file setup instead. Every later charge (session total, late-cancel
-   fee) is a **merchant-initiated charge on a stored credential**. It is flagged
-   with `processingOptions` per the card-on-file guide (`isSubsequentAuth`, with
-   `isStoredCredentials` as the guide prescribes) and
-   `subsequentAuthInformation.reason` (`delayedCharge` for the session,
-   `noShow` for a late cancel). If the verification returns a network
-   transaction ID, it goes in `originalNetworkTransId`. Confirm the exact flag
-   combination in the sandbox. Authorize.net only sets these flags
-   automatically for its recurring-billing product (ARB), not for charges
-   against stored profiles.
-7. De-duplication: each charge sends `refId` and `order.invoiceNumber` (booking
-   ID plus charge kind), plus a `duplicateWindow` transaction setting (for
-   example 120 seconds). Authorize.net then rejects an identical
-   resubmission, such as a double click or a retried request, instead of
-   charging twice.
+   fee) is a **merchant-initiated charge on a stored credential**. Built as:
+   `processingOptions: { isSubsequentAuth: "true" }` and
+   `subsequentAuthInformation: { reason }`, with `delayedCharge` for the session
+   and `noShow` for a late cancel. `isStoredCredentials` is *not* sent: the
+   card-on-file guide reserves it for charges "initiated by a customer using the
+   merchant's stored COF data" (we use it in `purchase()` with a saved card).
+   The guide writes the reasons in lower case (`delayedcharge`, `noshow`); the
+   schema's `merchantInitTransReasonEnum` has `delayedCharge` / `noShow`, and the
+   schema is what the API validates, so we follow it. We don't send
+   `originalNetworkTransId`: per the guide, "Customer profiles automatically send
+   the original network transaction ID from the first transaction submitted for
+   the payment profile". Authorize.net only sets the MIT flags themselves for
+   its recurring-billing product (ARB), not for charges against stored profiles.
+7. De-duplication: each charge sends `refId` (booking ID plus charge kind) and a
+   deterministic 20-character `order.invoiceNumber` (a hash of the booking ID
+   plus `-S` session / `-F` fee), plus a `duplicateWindow` of 120 seconds.
+   Authorize.net then rejects an identical resubmission, such as a double click
+   or a retried request, instead of charging twice. That rejection (transaction
+   error 11) comes back as `{ ok: false, code: "duplicate" }`. Saving a card for
+   a customer who already has a profile (`E00039`) reuses that profile.
 8. Packages (later): an immediate `authCaptureTransaction` against a saved
    profile, or through Accept Hosted.
 9. Corrections use `voidTransaction` before settlement and `refundTransaction`
@@ -96,10 +108,25 @@ body, using the Signature Key, against the `X-ANET-Signature` header.
 - `lib/payments/stub-gateway.ts`: a predictable stub. Card number 4000 0000
   0000 0002, or any amount ending in .13, is declined. Card numbers are never
   stored or logged.
-- `lib/payments/authorize-net-gateway.ts`: the skeleton. Each method has a TODO
-  pointing at the doc section above.
+- `lib/payments/authorize-net-gateway.ts`: the Authorize.net JSON API client.
+  Request members follow the schema's element order (the JSON is converted to
+  XML), responses have their byte order mark stripped, and API errors become
+  `PaymentGatewayError` with Authorize.net's own message (never the keys).
 - `lib/payments/index.ts`: `getPaymentGateway()` picks the real gateway when
-  all `AUTHORIZE_NET_*` env vars are set, and the stub otherwise. Server only.
+  the login ID and transaction key are set, and the stub otherwise. Server
+  only. Production is refused without `AUTHORIZE_NET_ALLOW_PRODUCTION=1`.
+- `lib/payments/health.ts`: `authenticateTestRequest` behind
+  `npm run payments:check` and `GET /api/payments/health` (cached 60 s). On an
+  authentication failure (`E00007`/`E00008`) it also asks the other
+  environment, to say "these look like production keys but
+  AUTHORIZE_NET_ENV=sandbox" rather than just "failed".
+- `components/review/SaveCardStep.tsx`: with a real gateway, POSTs the token
+  into an iframe showing the hosted add-payment page.
+  `public/payments/iframe-communicator.html` (based on Authorize.net's sample)
+  relays `successfulSave` / `cancel` / `resizeWindow` back. Authorize.net only
+  takes an https communicator URL, so on a plain-http dev server the customer
+  clicks "I've saved my card" instead. Either way the server then reads the
+  profile's newest card (the hosted page doesn't tell the browser its id).
 - `app/api/payments/*`: route handlers. The browser only ever talks to these,
   never to Authorize.net.
 - `lib/repository.ts`: bookings carry a `payment` record (profile reference,
@@ -124,16 +151,84 @@ The stub build is fine for demos. Before taking real money:
 - [ ] **Idempotency.** An idempotency key per charge (`refId`/`invoiceNumber` +
       `duplicateWindow`). Records go `pending` → `settled`/`declined`, and are
       reconciled by webhooks (`X-ANET-Signature` verified with the Signature Key).
+- [ ] **Production stays refused until this list is done.** Only then set
+      `AUTHORIZE_NET_ALLOW_PRODUCTION=1` with `AUTHORIZE_NET_ENV=production` and
+      the production keys, in Vercel's Production environment only.
 - [ ] **Fail closed.** Done here: in production without keys the stub is refused
       unless `PAYMENTS_ALLOW_STUB=1`. Keep it that way, and never set that
       variable on the live deployment.
 - [ ] **Late-cancel window on the server, in the studio's time zone.** Today the
       browser computes it in the visitor's local time.
-- [ ] **Replace the inline test card form with the Accept Customer iframe**
-      (`getHostedProfilePageRequest` + `hostedProfileIFrameCommunicatorUrl`).
-      Delete the `stub/hosted-form` route from the live path.
+- [ ] **Accept Customer iframe.** Built (`getHostedProfilePageRequest` +
+      `hostedProfileIFrameCommunicatorUrl`); verify it in the sandbox on an
+      https Preview deployment, where the communicator works. The
+      `stub/hosted-form` route already answers 404 with a real gateway.
 - [ ] **Reuse one `customerProfileId` per customer** instead of creating a new
       profile each time "Save card on file" is clicked.
+
+## Environment variables and where to set them
+
+All server-only: never prefix them with `NEXT_PUBLIC_`. Locally they go in
+`.env.local` (git-ignored); on Vercel under Project → Settings → Environment
+Variables.
+
+| Variable | Vercel Preview | Vercel Production (for now) | Notes |
+| --- | --- | --- | --- |
+| `AUTHORIZE_NET_API_LOGIN_ID` | sandbox login ID | empty | Empty means the stub (refused in production runtimes). |
+| `AUTHORIZE_NET_TRANSACTION_KEY` | sandbox transaction key | empty | |
+| `AUTHORIZE_NET_ENV` | `sandbox` (or empty) | empty | Defaults to `sandbox`. Anything other than `sandbox`/`production` disables payments. |
+| `AUTHORIZE_NET_SIGNATURE_KEY` | sandbox signature key (optional) | empty | 128 hex characters; checked by the health check. Webhooks are not built yet. |
+| `AUTHORIZE_NET_ALLOW_PRODUCTION` | empty | empty | `1` allows `AUTHORIZE_NET_ENV=production`. **Not until the go-live checklist is done.** |
+| `PAYMENTS_ALLOW_STUB` | empty (or `1` for a stub demo) | empty | Never on the live site. |
+
+With Production left empty, https://www.rangebodywork.com/api/payments/status
+keeps answering `{"mode":"disabled"}`.
+
+## Manual sandbox test flow
+
+1. Sign up for a sandbox account at
+   https://developer.authorize.net/hello_world/sandbox.html and copy its API
+   Login ID and Transaction Key (Account → Settings → Security Settings → API
+   Credentials & Keys). Optionally create a Signature Key on the same screen.
+2. Put them in `.env.local` (`AUTHORIZE_NET_ENV=sandbox` or empty) and run
+   `npm run payments:check`. Expect `mode: sandbox`, `result: PASS`,
+   `I00001 Successful.` A `FAIL` with "These look like production keys" means
+   the keys came from the merchant (production) account, not the sandbox.
+3. `npm run build && npm start` (or set the variables in Vercel Preview and use
+   the Preview URL; there the iframe communicator works because it is https).
+   `GET /api/payments/status` → `{"mode":"sandbox"}`;
+   `GET /api/payments/health` → `credentialsOk: true`.
+4. Book a session through `/intake` → `/review`. Tick the consent box, click
+   **Save card on file**: Authorize.net's own card page loads in the frame
+   (labelled "Sandbox"). Use a test card from Authorize.net's testing guide
+   (https://developer.authorize.net/hello_world/testing_guide.html):
+   - Visa `4111 1111 1111 1111` (also `4007 0000 0000 027`, `4012 8888 1888 8`)
+   - Mastercard `5424 0000 0000 0015` or `2223 0000 1030 9703`
+   - American Express `3700 0000 0000 002` (4-digit code)
+   - Discover `6011 0000 0000 0012`
+   Any expiry date after today; any 3-digit code (4 for Amex). To make a charge
+   decline, give the card billing ZIP code `46282` ("This transaction has been
+   declined", response code 2). The guide says the old amount-based decline
+   triggers no longer work reliably.
+5. After **Save card**, the page shows "Visa ending 1111 saved" (on http, click
+   **I've saved my card**). **Confirm & Reserve**. No transaction appears in
+   the sandbox Merchant Interface (https://sandbox.authorize.net) other than,
+   possibly, the `liveMode` card verification.
+6. `/admin/bookings` → **Charge session**. The row shows *Charged*; the
+   sandbox Merchant Interface shows an Authorization/Capture for the session
+   total with invoice number `…-S`. The UI won't charge twice; if the same
+   charge is resubmitted within two minutes anyway, Authorize.net rejects it as
+   a duplicate.
+7. Book again, set the late-cancel fee on `/admin/payments`, and cancel the
+   booking inside the window from `/bookings`. The fee is charged (invoice
+   `…-F`) and the booking is cancelled.
+8. Repeat step 4 with ZIP `46282` and charge it: the booking records a declined
+   charge with Authorize.net's message.
+
+The automated version is `e2e/sandbox.spec.ts` (steps 4–7). It runs as part of
+`npm run test:e2e` only when sandbox keys are set, and skips itself otherwise.
+Its selectors for Authorize.net's hosted form fields are unverified until it
+has run against the sandbox once.
 
 ## What we need from the owner
 
@@ -171,6 +266,11 @@ The stub build is fine for demos. Before taking real money:
   https://developer.authorize.net/api/reference/features/webhooks.html
 - Enabling CIM on an account: https://support.authorize.net/knowledgebase/article/KA-04443/en-us
 - Sandbox signup: https://developer.authorize.net/hello_world/sandbox.html
+
+- Sandbox testing guide (test cards, decline ZIP 46282):
+  https://developer.authorize.net/hello_world/testing_guide.html
+- IFrame communicator sample:
+  https://github.com/AuthorizeNet/accept-sample-app/blob/master/IFrameCommunicator.html
 
 Not confirmed in the official docs: how long a hosted-profile-page token stays
 valid (forum posts say 15 minutes), whether Accept Hosted honours `createProfile`,
