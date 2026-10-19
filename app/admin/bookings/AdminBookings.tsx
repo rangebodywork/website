@@ -89,16 +89,22 @@ const PAYMENT_LABELS: Record<PaymentStatus, string> = {
   charged: "Charged",
   "fee-charged": "Fee charged",
   failed: "Failed",
+  unknown: "Outcome unknown",
 };
+
+const UNKNOWN_NOTE = "Outcome unknown — check Authorize.net before retrying";
 
 function PaymentCell({ booking, total }: { booking: ConfirmedBooking; total: number }) {
   const [busy, setBusy] = useState(false);
   const payment = booking.payment;
   if (!payment) return <p className="text-on-surface-variant">No card on file</p>;
   const last = payment.transactions.at(-1);
-  // A cancelled booking whose late-cancel fee was declined can retry that fee; an active one can charge its session.
+  // After an unknown outcome the only action is to retry that same charge, which reconciles with Authorize.net first.
+  // Otherwise a cancelled booking whose late-cancel fee was declined can retry that fee; an active one can charge its session.
   const action: { kind: PaymentKind; amount: number; label: string } | null =
-    booking.status === "cancelled"
+    payment.status === "unknown" && last
+      ? { kind: last.kind, amount: last.amount, label: `Check Authorize.net and retry ${formatPrice(last.amount, true)}` }
+      : booking.status === "cancelled"
       ? last && !last.ok && last.kind === "late-cancel-fee"
         ? { kind: "late-cancel-fee", amount: last.amount, label: `Retry fee ${formatPrice(last.amount, true)}` }
         : null
@@ -111,7 +117,7 @@ function PaymentCell({ booking, total }: { booking: ConfirmedBooking; total: num
         aria-live="polite"
         className={cn(
           "inline-flex rounded-full px-2 py-0.5 text-label-sm uppercase tracking-wider",
-          payment.status === "failed" ? "bg-error-container text-on-error-container" : "bg-primary-fixed/60 text-primary",
+          payment.status === "failed" || payment.status === "unknown" ? "bg-error-container text-on-error-container" : "bg-primary-fixed/60 text-primary",
         )}
       >
         {PAYMENT_LABELS[payment.status]}
@@ -123,7 +129,9 @@ function PaymentCell({ booking, total }: { booking: ConfirmedBooking; total: num
         <p className="text-label-sm text-on-surface-variant">
           {last.ok
             ? `${last.kind === "session" ? "Session" : "Late-cancel fee"} ${formatPrice(last.amount, true)} · ${last.transactionId}`
-            : `${formatPrice(last.amount, true)} declined: ${last.message}`}
+            : last.outcome === "unknown"
+              ? `${formatPrice(last.amount, true)} · ${UNKNOWN_NOTE}`
+              : `${formatPrice(last.amount, true)} declined: ${last.message}`}
         </p>
       )}
       {action && (

@@ -232,7 +232,9 @@ function PaymentLine({ payment }: { payment: BookingPayment }) {
         ? `${formatPrice(last?.amount ?? 0, true)} charged to ${card}`
         : payment.status === "fee-charged"
           ? `Cancellation fee of ${formatPrice(last?.amount ?? 0, true)} charged to ${card}`
-          : `Payment to ${card} did not go through · the studio will be in touch`;
+          : payment.status === "unknown"
+            ? `Payment to ${card} is being confirmed · the studio will be in touch`
+            : `Payment to ${card} did not go through · the studio will be in touch`;
   return <p className="text-body-sm text-on-surface-variant" data-testid="payment-line">{text}</p>;
 }
 

@@ -15,7 +15,12 @@ import type { StoredCard } from "./gateway";
  */
 export type SavedCard = StoredCard & { profileToken: string };
 
-export type PaymentStatus = "card-on-file" | "charged" | "fee-charged" | "failed";
+/**
+ * `unknown`: a charge may or may not have gone through (timeout, dropped
+ * connection, duplicate-window rejection). Nothing charges it again
+ * automatically; the admin's retry first reconciles with Authorize.net.
+ */
+export type PaymentStatus = "card-on-file" | "charged" | "fee-charged" | "failed" | "unknown";
 export type PaymentKind = "session" | "late-cancel-fee";
 
 export interface PaymentRecord {
@@ -26,6 +31,8 @@ export interface PaymentRecord {
   ok: boolean;
   transactionId?: string;
   message?: string;
+  /** Set on a failed attempt whose outcome is unknown (see PaymentStatus). */
+  outcome?: "unknown";
 }
 
 export interface BookingPayment {
@@ -78,8 +85,20 @@ export function sessionCharged(payment: BookingPayment | undefined): boolean {
 
 /** Status after recording a transaction: the latest attempt wins. */
 export function statusFor(record: PaymentRecord): PaymentStatus {
-  if (!record.ok) return "failed";
+  if (!record.ok) return record.outcome === "unknown" ? "unknown" : "failed";
   return record.kind === "session" ? "charged" : "fee-charged";
+}
+
+/**
+ * Whether a charge of `kind` may be attempted now, and whether it must
+ * reconcile first. After an unknown outcome only the same kind of charge may be
+ * retried, and only with reconciliation; anything else waits until it's resolved.
+ */
+export function chargePlan(payment: BookingPayment, kind: PaymentKind): { allowed: boolean; reconcile: boolean } {
+  const last = payment.transactions.at(-1);
+  if (payment.status === "unknown") return { allowed: last?.kind === kind, reconcile: true };
+  if (kind === "session") return { allowed: !sessionCharged(payment), reconcile: false };
+  return { allowed: payment.status === "card-on-file" || payment.status === "failed", reconcile: false };
 }
 
 /** Local start of a booked session, or null while undated. */

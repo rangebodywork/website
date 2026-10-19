@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   PaymentGatewayError,
+  type ChargeLookup,
   type ChargeReason,
   type CustomerProfileInput,
   type HostedCardForm,
@@ -47,6 +48,11 @@ const DUPLICATE_PROFILE = "E00039";
 /** transactionResponse error code for a resubmission inside the duplicate window. */
 const DUPLICATE_TRANSACTION = "11";
 
+/** Transaction Reporting statuses where money moved (or will at settlement). */
+const CHARGED_STATUSES = new Set(["capturedPendingSettlement", "settledSuccessfully", "authorizedPendingCapture", "approvedReview"]);
+/** Statuses that may still turn into a charge: don't charge again while one exists. */
+const PENDING_STATUSES = new Set(["underReview", "FDSPendingReview", "FDSAuthorizedPendingReview", "communicationError"]);
+
 const KIND_CODE: Record<ChargeReason, string> = { session: "S", "late-cancel-fee": "F", package: "P" };
 const DESCRIPTION: Record<ChargeReason, string> = { session: "Session", "late-cancel-fee": "Late cancellation fee", package: "Package" };
 
@@ -60,6 +66,13 @@ interface TransactionResponse {
   authCode?: string;
   transId?: string;
   errors?: { error?: Array<{ errorCode?: string; errorText?: string }> };
+}
+
+interface TransactionSummary {
+  transId?: string;
+  transactionStatus?: string;
+  invoiceNumber?: string;
+  settleAmount?: number | string;
 }
 
 interface MaskedPaymentProfile {
@@ -102,6 +115,23 @@ export function invoiceNumber(bookingId: string, reason: ChargeReason): string {
 }
 
 const money = (amount: number) => amount.toFixed(2);
+
+/** The answer when a charge request may have reached Authorize.net but we can't tell what happened. */
+export function unknownOutcome(detail: string): TransactionResult {
+  console.error("[payments] charge outcome unknown:", detail);
+  return { ok: false, code: "unknown", message: "Outcome unknown. Check Authorize.net before retrying." };
+}
+
+/** Picks the earlier attempt at `invoice` out of transaction-list responses. */
+export function matchCharge(transactions: TransactionSummary[], invoice: string): ChargeLookup {
+  const matches = transactions.filter((t) => t.invoiceNumber === invoice && t.transId);
+  const charged = matches.find((t) => CHARGED_STATUSES.has(t.transactionStatus ?? ""));
+  if (charged) return { status: "charged", transactionId: charged.transId!, amount: Number(charged.settleAmount ?? 0) };
+  const pending = matches.find((t) => PENDING_STATUSES.has(t.transactionStatus ?? ""));
+  if (pending) return { status: "pending", transactionId: pending.transId! };
+  // Declined, voided, expired or errored attempts moved no money.
+  return { status: "none" };
+}
 const duplicateWindow = { setting: [{ settingName: "duplicateWindow", settingValue: String(DUPLICATE_WINDOW_SECONDS) }] };
 
 /** Maps a createTransactionResponse to our result; declines are results, not errors. */
@@ -125,11 +155,8 @@ export function parseTransaction(data: ApiResponse, amount: number): Transaction
       };
     default:
       if (error?.errorCode === DUPLICATE_TRANSACTION) {
-        return {
-          ok: false,
-          code: "duplicate",
-          message: `Authorize.net blocked this as a duplicate of a charge made in the last ${DUPLICATE_WINDOW_SECONDS / 60} minutes. Check the booking before retrying.`,
-        };
+        // An identical charge went in within the duplicate window; it may well have succeeded.
+        return unknownOutcome(`duplicate within ${DUPLICATE_WINDOW_SECONDS}s window`);
       }
       return { ok: false, code: "error", message: error?.errorText ?? firstMessage(data).text };
   }
@@ -304,27 +331,63 @@ export class AuthorizeNetGateway implements PaymentGateway {
     };
   }
 
+  /** Sends a createTransactionRequest; a failure after sending means the outcome is unknown, not "failed". */
+  private async transact(body: Record<string, unknown>, amount: number): Promise<TransactionResult> {
+    let data: ApiResponse;
+    try {
+      data = await this.call("createTransactionRequest", body);
+    } catch (error) {
+      if (error instanceof PaymentGatewayError) return unknownOutcome(`${error.code}: ${error.message}`);
+      throw error;
+    }
+    return parseTransaction(data, amount);
+  }
+
   async chargeStoredCard(charge: StoredCardCharge): Promise<TransactionResult> {
-    return parseTransaction(await this.call("createTransactionRequest", this.chargeRequest(charge)), charge.amount);
+    return this.transact(this.chargeRequest(charge), charge.amount);
+  }
+
+  /**
+   * Reconciliation before a retry: looks for this charge's invoice number among
+   * the customer profile's transactions (settled and unsettled) and the
+   * account's unsettled ones. Throws if either lookup fails, so the caller
+   * keeps the outcome unknown rather than charging.
+   */
+  async findCharge(charge: StoredCardCharge): Promise<ChargeLookup> {
+    const newestFirst = { orderBy: "submitTimeUTC", orderDescending: "true" };
+    const [forCustomer, unsettled] = await Promise.all([
+      this.call("getTransactionListForCustomerRequest", {
+        customerProfileId: charge.customerProfileId,
+        customerPaymentProfileId: charge.paymentProfileId,
+        sorting: newestFirst,
+        paging: { limit: "100", offset: "1" },
+      }),
+      this.call("getUnsettledTransactionListRequest", { sorting: newestFirst, paging: { limit: "1000", offset: "1" } }),
+    ]);
+    const list = (d: ApiResponse) => (d.transactions as { transaction?: TransactionSummary[] } | undefined)?.transaction ?? [];
+    // An empty list comes back as I00004 "No records found" with resultCode Ok.
+    return matchCharge([...list(this.expectOk(forCustomer)), ...list(this.expectOk(unsettled))], invoiceNumber(charge.bookingId, charge.reason));
   }
 
   async purchase(input: PurchaseInput): Promise<TransactionResult> {
     const { payment } = input;
-    const data = await this.call("createTransactionRequest", {
-      refId: input.orderId.slice(0, 50),
-      transactionRequest: {
-        transactionType: "authCaptureTransaction",
-        amount: money(input.amount),
-        ...("customerProfileId" in payment
-          ? { profile: { customerProfileId: payment.customerProfileId, paymentProfile: { paymentProfileId: payment.paymentProfileId } } }
-          : { payment: { opaqueData: { dataDescriptor: payment.opaqueDataDescriptor, dataValue: payment.opaqueDataValue } } }),
-        order: { invoiceNumber: input.orderId.slice(0, 20), description: input.description.slice(0, 255) },
-        transactionSettings: duplicateWindow,
-        // The customer chose to pay with a card they saved earlier: a customer-initiated stored-credential charge.
-        ...("customerProfileId" in payment ? { processingOptions: { isStoredCredentials: "true" } } : {}),
+    return this.transact(
+      {
+        refId: input.orderId.slice(0, 50),
+        transactionRequest: {
+          transactionType: "authCaptureTransaction",
+          amount: money(input.amount),
+          ...("customerProfileId" in payment
+            ? { profile: { customerProfileId: payment.customerProfileId, paymentProfile: { paymentProfileId: payment.paymentProfileId } } }
+            : { payment: { opaqueData: { dataDescriptor: payment.opaqueDataDescriptor, dataValue: payment.opaqueDataValue } } }),
+          order: { invoiceNumber: input.orderId.slice(0, 20), description: input.description.slice(0, 255) },
+          transactionSettings: duplicateWindow,
+          // The customer chose to pay with a card they saved earlier: a customer-initiated stored-credential charge.
+          ...("customerProfileId" in payment ? { processingOptions: { isStoredCredentials: "true" } } : {}),
+        },
       },
-    });
-    return parseTransaction(data, input.amount);
+      input.amount,
+    );
   }
 
   async voidTransaction(transactionId: string): Promise<TransactionResult> {

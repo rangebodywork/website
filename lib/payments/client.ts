@@ -1,7 +1,7 @@
 import { repository, type ConfirmedBooking } from "../repository";
 import type { HostedCardForm, TransactionResult } from "./gateway";
 import {
-  sessionCharged,
+  chargePlan,
   type CancellationQuote,
   type PaymentKind,
   type PaymentRecord,
@@ -10,15 +10,40 @@ import {
 
 /** Browser-side calls to our own `/api/payments` routes; never to the processor. */
 
+/** A non-2xx answer from our payment routes. `status` 0: no answer at all (network). */
+export class PaymentApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new PaymentApiError("Payment service error", 0);
+  }
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error ?? "Payment service error");
+  if (!res.ok) throw new PaymentApiError(data.error ?? "Payment service error", res.status);
   return data;
+}
+
+/**
+ * A charge request that failed without a clear answer may still have charged
+ * the card: no response, a gateway/server error or an unreadable body. Only a
+ * 4xx or a 503 (payments not configured) means nothing was sent.
+ */
+function outcomeUnknown(error: unknown): boolean {
+  if (!(error instanceof PaymentApiError)) return true;
+  return error.status === 0 || (error.status >= 500 && error.status !== 503);
 }
 
 export type CardForm = HostedCardForm & { mode: "stub" | "sandbox" | "production"; customerProfileId: string; profileToken: string };
@@ -36,7 +61,7 @@ export const paymentsApi = {
       profileToken: form.profileToken,
       paymentProfileId,
     }),
-  charge: (input: { card: SavedCard; amount: number; reason: PaymentKind; bookingId: string }) =>
+  charge: (input: { card: SavedCard; amount: number; reason: PaymentKind; bookingId: string; reconcile?: boolean }) =>
     post<TransactionResult>("/api/payments/charge", {
       customerProfileId: input.card.customerProfileId,
       profileToken: input.card.profileToken,
@@ -44,6 +69,7 @@ export const paymentsApi = {
       amount: input.amount,
       reason: input.reason,
       bookingId: input.bookingId,
+      reconcile: input.reconcile || undefined,
     }),
 };
 
@@ -51,42 +77,43 @@ export const paymentsApi = {
 const inFlight = new Set<string>();
 
 /**
- * Charges the booking's card on file and records the attempt (success or
- * failure) on the booking. Returns null if a charge for it is already running,
- * or if nothing may be charged: a session already charged, or a fee once
- * the session or a fee has been charged.
+ * Charges the booking's card on file and records the attempt (success,
+ * failure or unknown outcome) on the booking. Returns null if a charge for it
+ * is already running, or if nothing may be charged (see `chargePlan`): a
+ * session already charged, a fee once the session or a fee has been charged,
+ * or a different charge while one's outcome is unknown. Retrying a charge
+ * whose outcome is unknown asks the server to reconcile first.
  */
 export async function chargeBooking(snapshot: ConfirmedBooking, kind: PaymentKind, amount: number): Promise<PaymentRecord | null> {
   // Decide on the latest stored record, not whatever the caller rendered.
   const booking = repository.listBookings().find((b) => b.id === snapshot.id) ?? snapshot;
   if (!booking.payment) throw new Error("No card on file for this booking");
   if (inFlight.has(booking.id)) return null;
-  if (kind === "session" && sessionCharged(booking.payment)) return null;
-  if (kind === "late-cancel-fee" && booking.payment.status !== "card-on-file" && booking.payment.status !== "failed") return null;
+  const plan = chargePlan(booking.payment, kind);
+  if (!plan.allowed) return null;
   inFlight.add(booking.id);
   try {
-    return await attemptCharge(booking, kind, amount);
+    return await attemptCharge(booking, kind, amount, plan.reconcile);
   } finally {
     inFlight.delete(booking.id);
   }
 }
 
-async function attemptCharge(booking: ConfirmedBooking, kind: PaymentKind, amount: number): Promise<PaymentRecord> {
+async function attemptCharge(booking: ConfirmedBooking, kind: PaymentKind, amount: number, reconcile: boolean): Promise<PaymentRecord> {
   if (!booking.payment) throw new Error("No card on file for this booking");
+  const base = { id: crypto.randomUUID(), kind, amount, at: new Date().toISOString() };
   let record: PaymentRecord;
   try {
-    const result = await paymentsApi.charge({ card: booking.payment.card, amount, reason: kind, bookingId: booking.id });
+    const result = await paymentsApi.charge({ card: booking.payment.card, amount, reason: kind, bookingId: booking.id, reconcile });
     record = result.ok
-      ? { id: crypto.randomUUID(), kind, amount, at: new Date().toISOString(), ok: true, transactionId: result.transactionId }
-      : { id: crypto.randomUUID(), kind, amount, at: new Date().toISOString(), ok: false, message: result.message };
+      ? { ...base, ok: true, transactionId: result.transactionId }
+      : { ...base, ok: false, message: result.message, ...(result.code === "unknown" ? { outcome: "unknown" as const } : {}) };
   } catch (error) {
     record = {
-      id: crypto.randomUUID(),
-      kind,
-      amount,
-      at: new Date().toISOString(),
+      ...base,
       ok: false,
       message: error instanceof Error ? error.message : "Payment service error",
+      ...(outcomeUnknown(error) ? { outcome: "unknown" as const } : {}),
     };
   }
   await repository.recordPayment(booking.id, record);

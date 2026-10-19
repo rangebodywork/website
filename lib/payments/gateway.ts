@@ -49,9 +49,21 @@ export interface PurchaseInput {
   payment: { customerProfileId: string; paymentProfileId: string } | { opaqueDataDescriptor: string; opaqueDataValue: string };
 }
 
+/**
+ * `unknown`: the request may have reached the processor but we don't know the
+ * outcome (timeout, dropped connection, unreadable answer, or a duplicate-window
+ * rejection of an earlier attempt). Never retry blindly: reconcile first.
+ */
 export type TransactionResult =
-  | { ok: true; transactionId: string; amount: number; authCode: string }
-  | { ok: false; code: "declined" | "duplicate" | "error"; message: string };
+  | { ok: true; transactionId: string; amount: number; authCode: string; reconciled?: boolean }
+  | { ok: false; code: "declined" | "unknown" | "error"; message: string };
+
+/** What a reconciliation lookup found for a charge's invoice number. */
+export type ChargeLookup =
+  | { status: "none" }
+  | { status: "charged"; transactionId: string; amount: number }
+  /** A matching transaction exists but hasn't resolved (e.g. under review). */
+  | { status: "pending"; transactionId: string };
 
 export interface PaymentGateway {
   readonly mode: GatewayMode;
@@ -71,6 +83,8 @@ export interface PaymentGateway {
 
   /** Merchant-initiated charge of a card on file (session total or late-cancel fee). */
   chargeStoredCard(charge: StoredCardCharge): Promise<TransactionResult>;
+  /** Looks for an earlier attempt at this charge (same invoice number) before a retry. */
+  findCharge(charge: StoredCardCharge): Promise<ChargeLookup>;
   /** Customer-initiated immediate charge. Not used yet; packages will need it. */
   purchase(input: PurchaseInput): Promise<TransactionResult>;
 

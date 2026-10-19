@@ -70,9 +70,24 @@ stored profile.
    deterministic 20-character `order.invoiceNumber` (a hash of the booking ID
    plus `-S` session / `-F` fee), plus a `duplicateWindow` of 120 seconds.
    Authorize.net then rejects an identical resubmission, such as a double click
-   or a retried request, instead of charging twice. That rejection (transaction
-   error 11) comes back as `{ ok: false, code: "duplicate" }`. Saving a card for
-   a customer who already has a profile (`E00039`) reuses that profile.
+   or a retried request, instead of charging twice. Saving a card for a
+   customer who already has a profile (`E00039`) reuses that profile.
+
+   **Unknown outcomes.** A charge that times out, loses its connection, gets an
+   HTTP error or unreadable answer after being sent, or is rejected as a
+   duplicate (transaction error 11, meaning an identical charge went in within
+   two minutes) returns `{ ok: false, code: "unknown" }`. The browser does the
+   same when our own route doesn't answer cleanly (no response or a 5xx other
+   than 503). The booking's payment status becomes `unknown`: nothing charges it
+   automatically, other charges on it wait, and the admin sees "Outcome unknown
+   — check Authorize.net before retrying". The admin's retry sends
+   `reconcile: true`; the charge route then looks for the earlier attempt by
+   invoice number in `getTransactionListForCustomerRequest` (that customer and
+   payment profile) and `getUnsettledTransactionListRequest`, and only charges
+   if neither has a matching approved or pending transaction. A match is
+   recorded as the charge; a failed lookup leaves the outcome unknown. These
+   are Transaction Reporting calls; if the account has the Transaction Details
+   API turned off they fail, and the retry is refused rather than risked.
 8. Packages (later): an immediate `authCaptureTransaction` against a saved
    profile, or through Accept Hosted.
 9. Corrections use `voidTransaction` before settlement and `refundTransaction`

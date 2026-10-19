@@ -183,7 +183,7 @@ const isBooking = (b: Record<string, unknown>) =>
   isRecord(b.state.modalities) &&
   isRecord(b.state.intake);
 
-const PAYMENT_STATUSES: PaymentStatus[] = ["card-on-file", "charged", "fee-charged", "failed"];
+const PAYMENT_STATUSES: PaymentStatus[] = ["card-on-file", "charged", "fee-charged", "failed", "unknown"];
 
 const isFiniteNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 

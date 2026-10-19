@@ -210,7 +210,7 @@ describe("parseTransaction", () => {
     assert.deepEqual(r, { ok: false, code: "declined", message: "This transaction has been declined." });
   });
 
-  it("maps a duplicate-window rejection (error 11)", () => {
+  it("maps a duplicate-window rejection (error 11) to an unknown outcome", () => {
     const r = parseTransaction(
       err("E00027", "The transaction was unsuccessful.", {
         transactionResponse: { responseCode: "3", errors: { error: [{ errorCode: "11", errorText: "A duplicate transaction has been submitted." }] } },
@@ -218,7 +218,7 @@ describe("parseTransaction", () => {
       10,
     );
     assert.equal(r.ok, false);
-    assert.equal(!r.ok && r.code, "duplicate");
+    assert.equal(!r.ok && r.code, "unknown");
   });
 
   it("maps held-for-review and missing transaction responses to errors", () => {

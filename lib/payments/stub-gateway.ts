@@ -1,4 +1,5 @@
 import type {
+  ChargeLookup,
   CustomerProfileInput,
   HostedCardForm,
   PaymentGateway,
@@ -141,6 +142,12 @@ export class StubPaymentGateway implements PaymentGateway {
           : approved(charge.amount);
     log("chargeStoredCard", { bookingId: charge.bookingId, reason: charge.reason, amount: charge.amount, result });
     return result;
+  }
+
+  /** Stateless, so it never has an earlier attempt to find. */
+  async findCharge(charge: StoredCardCharge): Promise<ChargeLookup> {
+    log("findCharge", { bookingId: charge.bookingId, reason: charge.reason });
+    return { status: "none" };
   }
 
   async purchase(input: PurchaseInput): Promise<TransactionResult> {
