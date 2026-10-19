@@ -152,8 +152,9 @@ Two things were taken from **variant 1** instead:
 - **Dates are real.** The intake shows the next five days from today. The design's "October 2024" strip
   was static. Friday and Sunday get the terracotta "limited" dot. Slot end times follow the session length.
   The workshop dates moved to upcoming Saturdays (Oct 17 and Nov 7, 2026) so the weekdays are correct.
-- **Practitioner name.** The Schedule export said "Elena Ward". It is unified to **Elena Vance**, the name
-  used on the other four screens.
+- **Practitioner name.** The Stitch exports used placeholder names ("Elena Ward", "Elena Vance"). The real
+  practitioner is **Steven Rogers**; the name lives once in `PRACTITIONER` (`lib/nav.ts`) and every screen,
+  alt text, the meta description and the calendar event read it from there.
 - **Intake defaults.** Preference chips (focus areas, pressure, goals, topics) start as shown in the design.
   Name, phone, emergency contact and the health consents start empty; the design's "Siddhartha Roy" etc.
   are placeholders only. Full name, phone and the two required consents are validated before Review.
