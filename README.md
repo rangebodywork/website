@@ -139,7 +139,9 @@ Two things were taken from **variant 1** instead:
   `<Icon name>` prop is type-checked against it. If you add an icon, add it to that list and run
   `npm run icons`.
 - **Images.** The Stitch `lh3.googleusercontent.com` images were downloaded into `public/images/` and are
-  served with `next/image`. Those URLs are temporary, so no `remotePatterns` config is needed.
+  served with `next/image`. Those URLs are temporary, so no `remotePatterns` config is needed. The
+  practitioner avatar (`practitioner.jpg`) is a real studio photo: a face-centred 512px square crop,
+  re-encoded as JPEG q82 (~20 KB). The full-size original is kept out of the repo.
 - **Pricing is computed.** Prices come from a per-duration table in `lib/catalog.ts`. The designs showed
   three different totals for the same session ($245 / $265 / $235). The table reproduces the Review
   screen's itemised $35 / $90 / $110 = **$235**, and Mind & Body Reset ($195) and Grounded Breath ($150).
@@ -183,7 +185,7 @@ components/          SiteHeader, DesktopNav, BottomNav, SiteFooter, StickyAction
 lib/                 catalog (modalities, rituals, pricing), repository (data layer), booking store + context,
                      formatting, .ics
   payments/          PaymentGateway interface, stub, Authorize.net skeleton, gateway selection, client helpers
-public/images/       practitioner & studio photography from the Stitch exports
+public/images/       practitioner headshot (real photo) & studio photography from the Stitch exports
 scripts/             fetch-icons.mjs (Material Symbols subset)
 docs/                original Stitch exports (unchanged); payments.md (payments design note)
 ```
