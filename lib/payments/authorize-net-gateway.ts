@@ -108,11 +108,13 @@ export function brandName(cardType: string | undefined): string {
 }
 
 /**
- * A deterministic invoice number (max 20 chars) per booking and charge kind,
- * so a resubmitted charge matches the first one inside the duplicate window.
+ * A deterministic invoice number (max 20 chars) per booking (or order) and
+ * charge kind, so a resubmitted charge matches the first one inside the
+ * duplicate window and reconciliation can find it. Hashed rather than
+ * truncated, so long ids that share a prefix don't collide.
  */
-export function invoiceNumber(bookingId: string, reason: ChargeReason): string {
-  return `${createHash("sha256").update(bookingId).digest("hex").slice(0, 18)}-${KIND_CODE[reason]}`;
+export function invoiceNumber(id: string, reason: ChargeReason): string {
+  return `${createHash("sha256").update(id).digest("hex").slice(0, 18)}-${KIND_CODE[reason]}`;
 }
 
 const money = (amount: number) => amount.toFixed(2);
@@ -392,7 +394,7 @@ export class AuthorizeNetGateway implements PaymentGateway {
           ...("customerProfileId" in payment
             ? { profile: { customerProfileId: payment.customerProfileId, paymentProfile: { paymentProfileId: payment.paymentProfileId } } }
             : { payment: { opaqueData: { dataDescriptor: payment.opaqueDataDescriptor, dataValue: payment.opaqueDataValue } } }),
-          order: { invoiceNumber: input.orderId.slice(0, 20), description: input.description.slice(0, 255) },
+          order: { invoiceNumber: invoiceNumber(input.orderId, "package"), description: input.description.slice(0, 255) },
           transactionSettings: duplicateWindow,
           // The customer chose to pay with a card they saved earlier: a customer-initiated stored-credential charge.
           ...("customerProfileId" in payment ? { processingOptions: { isStoredCredentials: "true" } } : {}),

@@ -176,6 +176,19 @@ describe("AuthorizeNetGateway requests", () => {
     assert.ok(fee.order.invoiceNumber.length <= 20);
   });
 
+  it("hashes the purchase order id into its invoice number instead of truncating it", async () => {
+    const answer = () => ok({ transactionResponse: { responseCode: "1", transId: "8", authCode: "A" } });
+    const { impl, calls } = mockFetch(answer, answer);
+    const prefix = "order-2026-10-19-package-";
+    const pay = { customerProfileId: "1", paymentProfileId: "2" };
+    await gateway(impl).purchase({ amount: 50, description: "Pack", orderId: `${prefix}A`, payment: pay });
+    await gateway(impl).purchase({ amount: 50, description: "Pack", orderId: `${prefix}B`, payment: pay });
+    const invoices = calls.map((c) => (c.body.createTransactionRequest.transactionRequest as { order: { invoiceNumber: string } }).order.invoiceNumber);
+    assert.equal(invoices[0], invoiceNumber(`${prefix}A`, "package"));
+    assert.notEqual(invoices[0], invoices[1]);
+    for (const invoice of invoices) assert.ok(invoice.length <= 20);
+  });
+
   it("orders refund members per the schema", async () => {
     const { impl, calls } = mockFetch(ok({ transactionResponse: { responseCode: "1", transId: "7", authCode: "" } }));
     await gateway(impl).refund({ transactionId: "60001", amount: 10, customerProfileId: "1", paymentProfileId: "2" });
