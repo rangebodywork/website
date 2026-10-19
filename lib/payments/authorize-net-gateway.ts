@@ -51,7 +51,7 @@ const KIND_CODE: Record<ChargeReason, string> = { session: "S", "late-cancel-fee
 const DESCRIPTION: Record<ChargeReason, string> = { session: "Session", "late-cancel-fee": "Late cancellation fee", package: "Package" };
 
 interface ApiResponse {
-  messages?: { resultCode?: "Ok" | "Error"; message?: Array<{ code?: string; text?: string }> };
+  messages?: { resultCode?: string; message?: Array<{ code?: string; text?: string }> };
   [key: string]: unknown;
 }
 
