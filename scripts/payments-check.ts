@@ -10,7 +10,7 @@ loadEnvConfig(process.cwd(), true, { info: () => {}, error: console.error });
 
 async function main() {
   const loginId = process.env.AUTHORIZE_NET_API_LOGIN_ID?.trim() ?? "";
-  const health = await checkPaymentsHealth(process.env);
+  const health = await checkPaymentsHealth(process.env, undefined, { probeOtherEnv: true });
 
   console.log(`env:      ${process.env.AUTHORIZE_NET_ENV?.trim() || "sandbox (default)"}`);
   console.log(`mode:     ${health.mode}`);

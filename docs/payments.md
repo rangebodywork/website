@@ -132,9 +132,10 @@ body, using the Signature Key, against the `X-ANET-Signature` header.
   only. Production is refused without `AUTHORIZE_NET_ALLOW_PRODUCTION=1`.
 - `lib/payments/health.ts`: `authenticateTestRequest` behind
   `npm run payments:check` and `GET /api/payments/health` (cached 60 s). On an
-  authentication failure (`E00007`/`E00008`) it also asks the other
-  environment, to say "these look like production keys but
-  AUTHORIZE_NET_ENV=sandbox" rather than just "failed".
+  authentication failure (`E00007`/`E00008`), `payments:check` also asks the
+  other environment, to say "these look like production keys but
+  AUTHORIZE_NET_ENV=sandbox" rather than just "failed". The public health
+  route only calls the configured environment.
 - `lib/payments/binding.ts`: Authorize.net customer profile ids are sequential
   numbers, so the browser never acts on a bare id. `card-form` returns
   `profileToken` = HMAC-SHA256 of the id keyed by `PAYMENTS_SESSION_SECRET`;

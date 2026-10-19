@@ -259,9 +259,20 @@ describe("authenticate / health", () => {
     assert.deepEqual(Object.keys(calls[0].body.authenticateTestRequest), ["merchantAuthentication"]);
   });
 
-  it("says when sandbox-configured keys belong to production", async () => {
-    const { impl, calls } = mockFetch(AUTH_FAILED, ok());
+  it("probes only the configured environment by default (the /health route)", async () => {
+    const { impl, calls } = mockFetch(AUTH_FAILED);
     const health = await checkPaymentsHealth(KEYS, impl);
+    assert.equal(health.credentialsOk, false);
+    assert.deepEqual(
+      calls.map((c) => c.url),
+      [ENDPOINTS.sandbox.api],
+    );
+    assert.doesNotMatch(health.message, /look like production keys/);
+  });
+
+  it("says when sandbox-configured keys belong to production (payments:check)", async () => {
+    const { impl, calls } = mockFetch(AUTH_FAILED, ok());
+    const health = await checkPaymentsHealth(KEYS, impl, { probeOtherEnv: true });
     assert.equal(health.credentialsOk, false);
     assert.match(health.message, /These look like production keys but AUTHORIZE_NET_ENV=sandbox/);
     assert.deepEqual(
@@ -272,7 +283,7 @@ describe("authenticate / health", () => {
 
   it("says when the keys are wrong in both environments", async () => {
     const { impl } = mockFetch(AUTH_FAILED, AUTH_FAILED);
-    const health = await checkPaymentsHealth(KEYS, impl);
+    const health = await checkPaymentsHealth(KEYS, impl, { probeOtherEnv: true });
     assert.equal(health.credentialsOk, false);
     assert.match(health.message, /look wrong rather than swapped/);
   });

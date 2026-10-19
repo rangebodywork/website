@@ -27,9 +27,15 @@ export function maskLoginId(id: string): string {
   return id.length <= 4 ? "*".repeat(id.length) : `${id.slice(0, 2)}${"*".repeat(id.length - 4)}${id.slice(-2)}`;
 }
 
+/**
+ * `probeOtherEnv`: on an authentication failure, also try the other
+ * environment to say "these look like production keys". Only `payments:check`
+ * does this; the public health route talks to the configured environment only.
+ */
 export async function checkPaymentsHealth(
   env: Record<string, string | undefined> = process.env,
   fetchImpl?: typeof fetch,
+  options: { probeOtherEnv?: boolean } = {},
 ): Promise<PaymentsHealth> {
   let gateway;
   try {
@@ -43,7 +49,7 @@ export async function checkPaymentsHealth(
   }
   let auth;
   try {
-    auth = await gateway.authenticate({ probeOtherEnv: true });
+    auth = await gateway.authenticate({ probeOtherEnv: options.probeOtherEnv ?? false });
   } catch (error) {
     if (error instanceof PaymentGatewayError) return { mode: gateway.mode, credentialsOk: false, message: error.message };
     throw error;

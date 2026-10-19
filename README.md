@@ -292,8 +292,8 @@ stub-mode banner.
 
 **Checking keys.** `npm run payments:check` checks the keys in `.env.local`. `GET /api/payments/health` does the
 same on a deployment and returns `{ mode, credentialsOk, code, message }` with no secrets, cached for 60 seconds.
-If the keys fail, both say whether they work in the other environment ("These look like production keys but
-AUTHORIZE_NET_ENV=sandbox").
+If the keys fail, `payments:check` also tries the other environment and says so ("These look like production keys
+but AUTHORIZE_NET_ENV=sandbox"); the public health route only talks to the configured environment.
 
 ### Open questions for the owner
 
