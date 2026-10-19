@@ -30,7 +30,7 @@ export const paymentsApi = {
   submitTestCard: (form: CardForm, card: { number: string; expiry: string; cvc: string }) =>
     post<{ customerProfileId: string; paymentProfileId: string }>(form.formUrl, { token: form.token, ...card }),
   status: () => fetch("/api/payments/status", { cache: "no-store" }).then((r) => r.json() as Promise<{ mode: CardForm["mode"] | "disabled" }>),
-  storedCard: (customerProfileId: string, paymentProfileId: string) =>
+  storedCard: (customerProfileId: string, paymentProfileId?: string) =>
     post<SavedCard>("/api/payments/stored-card", { customerProfileId, paymentProfileId }),
   charge: (input: { card: SavedCard; amount: number; reason: PaymentKind; bookingId: string }) =>
     post<TransactionResult>("/api/payments/charge", {

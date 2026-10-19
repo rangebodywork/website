@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useBooking } from "@/lib/booking-context";
 import { paymentsApi, type CardForm } from "@/lib/payments/client";
 import { Icon } from "../Icon";
@@ -11,8 +11,9 @@ const inputClass =
 
 /**
  * "Save card on file" step before confirming. Only a payment-profile reference
- * and brand/last4 come back to the browser. In test mode the form below plays
- * the part of Authorize.net's hosted form; the number goes only to the stub.
+ * and brand/last4 come back to the browser. With Authorize.net configured the
+ * card is typed into its hosted form (an iframe); in stub mode the form below
+ * plays that part and the number goes only to the stub.
  */
 export function SaveCardStep() {
   const { state, actions } = useBooking();
@@ -43,6 +44,13 @@ export function SaveCardStep() {
           name: state.intake.fullName,
         }),
       );
+    });
+
+  const hostedSaved = () =>
+    run(async () => {
+      if (!form) return;
+      actions.setSavedCard(await paymentsApi.storedCard(form.customerProfileId));
+      setForm(null);
     });
 
   const submitCard = () =>
@@ -83,6 +91,8 @@ export function SaveCardStep() {
             Use a different card
           </button>
         </div>
+      ) : form && form.mode !== "stub" ? (
+        <HostedCardForm form={form} busy={busy} onSaved={() => void hostedSaved()} onCancel={() => setForm(null)} />
       ) : form ? (
         <form
           aria-label="Test-mode card form"
@@ -96,9 +106,8 @@ export function SaveCardStep() {
             Test mode · no real card is processed
           </p>
           <p className="font-body-sm text-body-sm text-on-tertiary-fixed-variant">
-            {form.mode === "stub"
-              ? "Stands in for Authorize.net's hosted card form until the studio's keys are set up. Use 4111 1111 1111 1111 (approves) or 4000 0000 0000 0002 (declines when charged), any future expiry and any 3-digit code."
-              : "Live payment form not available yet."}
+            Stands in for Authorize.net&apos;s hosted card form until the studio&apos;s keys are set up. Use 4111 1111 1111
+            1111 (approves) or 4000 0000 0000 0002 (declines when charged), any future expiry and any 3-digit code.
           </p>
           <div>
             <label htmlFor="card-number" className="block font-label-md text-label-md text-on-surface-variant">
@@ -188,5 +197,76 @@ export function SaveCardStep() {
         </p>
       )}
     </Card>
+  );
+}
+
+const FRAME_NAME = "anet-add-payment";
+
+/**
+ * Authorize.net's hosted "add payment" page in an iframe: the form token is
+ * POSTed into the frame, and public/payments/iframe-communicator.html relays
+ * its events (saved, cancelled, resized) back here. Where the communicator
+ * can't be used (plain-http dev servers), "I've saved my card" does the same.
+ */
+function HostedCardForm({
+  form,
+  busy,
+  onSaved,
+  onCancel,
+}: {
+  form: CardForm;
+  busy: boolean;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
+  const post = useRef<HTMLFormElement>(null);
+  const [height, setHeight] = useState(560);
+
+  useEffect(() => {
+    post.current?.submit();
+  }, [form.token]);
+
+  useEffect(() => {
+    const listen = (event: MessageEvent) => {
+      const data = event.data as { source?: string; qstr?: string } | null;
+      if (event.origin !== window.location.origin || data?.source !== "anet-iframe-communicator" || !data.qstr) return;
+      const params = new URLSearchParams(data.qstr);
+      const action = params.get("action");
+      if (action === "successfulSave") onSaved();
+      else if (action === "cancel") onCancel();
+      else if (action === "resizeWindow") {
+        const h = Number(params.get("height"));
+        if (h > 0) setHeight(Math.min(Math.max(h, 300), 1200));
+      }
+    };
+    window.addEventListener("message", listen);
+    return () => window.removeEventListener("message", listen);
+  }, [onSaved, onCancel]);
+
+  return (
+    <div className="space-y-3">
+      {form.mode === "sandbox" && (
+        <p className="font-label-md text-label-md uppercase tracking-wider text-on-tertiary-fixed">
+          Sandbox · Authorize.net test account, no real money moves
+        </p>
+      )}
+      <form ref={post} method="post" action={form.formUrl} target={FRAME_NAME} hidden>
+        <input type="hidden" name="token" value={form.token} />
+      </form>
+      <iframe
+        name={FRAME_NAME}
+        title="Secure card form (Authorize.net)"
+        className="w-full rounded-lg border border-outline-variant bg-white"
+        style={{ height }}
+      />
+      <div className="flex gap-2">
+        <button type="button" disabled={busy} onClick={onSaved} className="rounded-lg bg-primary px-4 py-2 text-on-primary disabled:opacity-60">
+          I&apos;ve saved my card
+        </button>
+        <button type="button" onClick={onCancel} className="rounded-lg border border-outline-variant px-4 py-2 text-on-surface">
+          Back
+        </button>
+      </div>
+    </div>
   );
 }

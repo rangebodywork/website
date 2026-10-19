@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>IFrame Communicator</title>
+    <!--
+      Authorize.net's hosted profile page (in an iframe on /review) loads this
+      page in a hidden iframe and sends it events such as
+      "action=successfulSave", "action=cancel" and
+      "action=resizeWindow&width=..&height=..". Being on our origin, it passes
+      them up to the booking page with postMessage. Based on Authorize.net's
+      sample: https://github.com/AuthorizeNet/accept-sample-app/blob/master/IFrameCommunicator.html
+    -->
+    <script>
+      (function () {
+        function relay(qstr) {
+          if (!qstr || typeof qstr !== "string") return;
+          try {
+            window.parent.parent.postMessage({ source: "anet-iframe-communicator", qstr: qstr }, window.location.origin);
+          } catch (e) {
+            // Not embedded where we expect; nothing to do.
+          }
+        }
+        window.addEventListener("message", function (event) {
+          if (/^https:\/\/(accept|test)\.authorize\.net$/.test(event.origin)) relay(event.data);
+        });
+        if (window.location.hash.length > 1) relay(window.location.hash.substring(1));
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

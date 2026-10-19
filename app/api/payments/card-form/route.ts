@@ -19,7 +19,9 @@ export async function POST(request: Request) {
           description: typeof body.name === "string" ? body.name.slice(0, 255) : undefined,
         })
       ).customerProfileId;
-    const form = await gateway.getHostedCardForm(customerProfileId);
+    // Our page that relays the hosted form's events back to the booking page (https only).
+    const iframeCommunicatorUrl = new URL("/payments/iframe-communicator.html", request.url).toString();
+    const form = await gateway.getHostedCardForm(customerProfileId, { iframeCommunicatorUrl });
     return { mode: gateway.mode, customerProfileId, ...form };
   });
 }

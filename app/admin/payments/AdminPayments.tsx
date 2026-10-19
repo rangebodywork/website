@@ -10,7 +10,7 @@ const MODE_LABELS = {
   stub: "Test mode (stub gateway, no real charges)",
   sandbox: "Authorize.net sandbox",
   production: "Authorize.net production",
-  disabled: "Disabled: no Authorize.net keys in production",
+  disabled: "Disabled: no Authorize.net keys in production, or production not allowed yet",
 } as const;
 
 export function AdminPayments() {
@@ -44,8 +44,8 @@ function GatewayStatus() {
       )}
       {mode === "disabled" && (
         <p role="alert" className="rounded-xl bg-error p-4 text-body-sm font-semibold text-on-error">
-          Payments are disabled: this production deployment has no Authorize.net keys, so customers cannot save a
-          card. Set the AUTHORIZE_NET_* keys (or PAYMENTS_ALLOW_STUB=1 for a demo).
+          Payments are disabled: this production deployment has no Authorize.net keys (or has production keys that are
+          not allowed yet), so customers cannot save a card. See docs/payments.md; /api/payments/health says why.
         </p>
       )}
       <p className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest p-4 text-body-sm text-on-surface">
