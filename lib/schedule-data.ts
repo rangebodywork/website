@@ -1,4 +1,5 @@
 import type { IconName } from "./icons";
+import { PRACTITIONER } from "./nav";
 
 export type ScheduleCategory = "equinox" | "immersion" | "sound" | "anatomy";
 
@@ -41,7 +42,7 @@ export const RECURRING_CLASSES: RecurringClass[] = [
     whenIcon: "schedule",
     venue: "Equinox Sports Club San Francisco • Main Yoga Studio",
     notice:
-      "Book directly via the Equinox Member App or Front Desk. Non-members may inquire with Elena for guest pass reservations.",
+      `Book directly via the Equinox Member App or Front Desk. Non-members may inquire with ${PRACTITIONER.firstName} for guest pass reservations.`,
     inquirySubject: "Equinox Guest Pass Inquiry - Solar Vinyasa",
   },
   {

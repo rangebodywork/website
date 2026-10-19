@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { BookingProvider } from "@/lib/booking-context";
+import { PRACTITIONER } from "@/lib/nav";
 import { manrope, materialSymbols, newsreader } from "./fonts";
 import "./globals.css";
 
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s · Soma Studio",
   },
   description:
-    "Curate a personalized somatic session with Elena Vance: bodywork, private yoga, habit coaching, breathwork and resistance training in one restorative continuum.",
+    `Curate a personalized somatic session with ${PRACTITIONER.name}: bodywork, private yoga, habit coaching, breathwork and resistance training in one restorative continuum.`,
 };
 
 export const viewport: Viewport = {

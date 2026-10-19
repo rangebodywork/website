@@ -18,10 +18,16 @@ export const PRIMARY_NAV: Array<{ href: string; label: string; icon: IconName; m
   { href: ROUTES.profile, label: "Profile", icon: "person", match: [ROUTES.profile] },
 ];
 
+/** The practitioner who leads every session; credentials stay with each usage. */
+export const PRACTITIONER = {
+  name: "Steven Rogers",
+  firstName: "Steven",
+} as const;
+
 export const STUDIO = {
   name: "Soma Studio",
   email: "hello@somastudio.com",
-  practitionerEmail: "elena@somastudio.com",
+  practitionerEmail: "steven@somastudio.com",
   instagram: "https://instagram.com/somastudio",
   instagramHandle: "@somastudio",
   address: "428 Linden Blvd, Suite 201, Hayes Valley",

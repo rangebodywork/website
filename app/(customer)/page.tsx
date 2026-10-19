@@ -3,7 +3,7 @@ import { Avatar, PORTRAIT } from "@/components/Avatar";
 import { BuilderView } from "@/components/builder/BuilderView";
 import { Icon } from "@/components/Icon";
 import { HeaderIconLink, SiteHeader } from "@/components/SiteHeader";
-import { ROUTES } from "@/lib/nav";
+import { PRACTITIONER, ROUTES } from "@/lib/nav";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -16,7 +16,7 @@ export default function BuilderPage() {
       <SiteHeader
         variant="brand"
         largeBrand
-        subtitle="Elena Vance • Somatic Specialist"
+        subtitle={`${PRACTITIONER.name} • Somatic Specialist`}
         actions={
           <>
             <Link
@@ -29,7 +29,7 @@ export default function BuilderPage() {
             <HeaderIconLink href={ROUTES.schedule} icon="calendar_today" label="View schedule" />
             <Avatar
               src={PORTRAIT}
-              alt="Elena Vance"
+              alt={PRACTITIONER.name}
               size={36}
               eager
               className="border border-outline-variant/40"

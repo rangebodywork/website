@@ -3,14 +3,14 @@
 import Image from "next/image";
 import { formatPrice } from "@/lib/format";
 import { downloadIcs } from "@/lib/ics";
-import { STUDIO } from "@/lib/nav";
+import { PRACTITIONER, STUDIO } from "@/lib/nav";
 import type { Workshop } from "@/lib/schedule-data";
 import { Icon } from "../Icon";
 import { SaveButton } from "./ClassCard";
 
 function reserveHref(workshop: Workshop): string {
   const subject = `Reserve Spot - ${workshop.title} (${workshop.when.split(" • ")[0]})`;
-  const body = `Hi Elena,\n\nI'd love to reserve a spot for ${workshop.title} (${formatPrice(workshop.price)}).\n\nName:\nPhone:\n`;
+  const body = `Hi ${PRACTITIONER.firstName},\n\nI'd love to reserve a spot for ${workshop.title} (${formatPrice(workshop.price)}).\n\nName:\nPhone:\n`;
   return `mailto:${STUDIO.practitionerEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 

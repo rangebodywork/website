@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useBooking } from "@/lib/booking-context";
 import { useDatabase } from "@/lib/db-context";
 import { formatPrice } from "@/lib/format";
-import { ROUTES } from "@/lib/nav";
+import { PRACTITIONER, ROUTES } from "@/lib/nav";
 import { Avatar, PORTRAIT } from "../Avatar";
 import { EmptySession } from "../EmptySession";
 import { Icon } from "../Icon";
@@ -52,10 +52,10 @@ export function IntakeView() {
         <div className="space-y-6 lg:sticky lg:top-36">
           <div className="rounded-xl border border-outline-variant/40 bg-surface-container-low p-4.5 shadow-ambient">
             <div className="flex items-center gap-3.5">
-              <Avatar src={PORTRAIT} alt="Elena Vance" size={48} eager className="ring-2 ring-primary-fixed" />
+              <Avatar src={PORTRAIT} alt={PRACTITIONER.name} size={48} eager className="ring-2 ring-primary-fixed" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-title-md text-title-md font-medium text-primary">Elena Vance, LMT</span>
+                  <span className="font-title-md text-title-md font-medium text-primary">{PRACTITIONER.name}, LMT</span>
                   <Icon name="verified" filled className="text-sm text-secondary" />
                 </div>
                 <p className="truncate font-body-sm text-body-sm text-on-surface-variant">
@@ -123,7 +123,7 @@ function PolicyNote() {
     <div className="flex items-start gap-2.5 rounded-lg border border-outline-variant/30 bg-surface-container p-3">
       <Icon name="info" className="mt-0.5 text-lg text-outline" />
       <p className="font-body-sm text-body-sm text-outline">
-        Because Elena holds only 2 clients per day to honor energetic focus, cancellations require 48 hours notice for
+        Because {PRACTITIONER.firstName} holds only 2 clients per day to honor energetic focus, cancellations require 48 hours notice for
         full credit deposit transfer.
       </p>
     </div>

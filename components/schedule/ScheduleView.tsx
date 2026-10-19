@@ -6,6 +6,7 @@ import { Icon } from "../Icon";
 import { Chip } from "../ui/Chip";
 import { SCHEDULE_FILTERS, type ScheduleCategory } from "@/lib/schedule-data";
 import { useDatabase } from "@/lib/db-context";
+import { PRACTITIONER } from "@/lib/nav";
 import { ClassCard } from "./ClassCard";
 import { WorkshopCard } from "./WorkshopCard";
 
@@ -20,10 +21,10 @@ export function ScheduleView() {
     <main className="mx-auto max-w-4xl space-y-8 px-4 pb-12 pt-4 sm:px-6 md:px-8">
       <section className="flex flex-col justify-between gap-4 rounded-xl border border-surface-variant/40 bg-surface-container-low p-4 shadow-ambient sm:flex-row sm:items-center sm:p-5">
         <div className="flex items-center gap-3.5">
-          <Avatar src={PORTRAIT} alt="Elena Vance" size={56} eager className="border border-surface-variant/60" />
+          <Avatar src={PORTRAIT} alt={PRACTITIONER.name} size={56} eager className="border border-surface-variant/60" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h1 className="font-title-md text-title-md font-semibold text-primary">Elena Vance, E-RYT 500</h1>
+              <h1 className="font-title-md text-title-md font-semibold text-primary">{PRACTITIONER.name}, E-RYT 500</h1>
               <Icon name="verified" filled className="text-[18px] text-primary" />
             </div>
             <p className="font-body-sm text-body-sm text-on-surface-variant">
@@ -50,7 +51,7 @@ export function ScheduleView() {
             </p>
             <p className="font-body-sm text-body-sm text-on-surface-variant">
               Weekly group studio classes are taught exclusively through Equinox clubs (San Francisco &amp; Berkeley).
-              Independent weekend masterclasses, clinics, and immersions are curated and booked directly with Elena.
+              Independent weekend masterclasses, clinics, and immersions are curated and booked directly with {PRACTITIONER.firstName}.
             </p>
           </div>
         </div>
@@ -107,7 +108,7 @@ export function ScheduleView() {
               Workshops, Immersions &amp; Clinics
             </h2>
             <p className="font-body-sm text-body-sm text-on-surface-variant">
-              In-depth multi-hour somatic explorations curated and hosted directly by Elena Vance. Open to all students.
+              In-depth multi-hour somatic explorations curated and hosted directly by {PRACTITIONER.name}. Open to all students.
             </p>
           </div>
           <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">

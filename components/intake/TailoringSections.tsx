@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { FOCUS_AREAS, LIFESTYLE_TOPICS, MOVEMENT_GOALS, PRESSURE_LEVELS } from "@/lib/catalog";
 import { useBooking } from "@/lib/booking-context";
 import { cn } from "@/lib/cn";
+import { PRACTITIONER } from "@/lib/nav";
 import { Chip } from "../ui/Chip";
 
 export function IntakeSection({
@@ -105,7 +106,7 @@ export function MovementSection({ letter }: { letter: string }) {
     <IntakeSection
       marker={<Letter>{letter}</Letter>}
       title="Yoga & Movement Integration"
-      description="How would you like Elena to blend tailored movement mechanics into your sanctuary flow?"
+      description={`How would you like ${PRACTITIONER.firstName} to blend tailored movement mechanics into your sanctuary flow?`}
     >
       <div className="grid grid-cols-2 gap-2 pt-1">
         {MOVEMENT_GOALS.map((goal) => {

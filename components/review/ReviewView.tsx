@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useBooking } from "@/lib/booking-context";
 import { formatDuration, formatPrice } from "@/lib/format";
-import { ROUTES, STUDIO } from "@/lib/nav";
+import { PRACTITIONER, ROUTES, STUDIO } from "@/lib/nav";
 import { pressureIntent, primaryGoal, scheduleSummary } from "@/lib/session-summary";
 import { Avatar, PORTRAIT } from "../Avatar";
 import { EmptySession } from "../EmptySession";
@@ -76,10 +76,10 @@ export function ReviewView() {
             {/* Practitioner */}
             <Card className="p-4">
               <div className="flex items-start gap-3.5">
-                <Avatar src={PORTRAIT} alt="Elena Vance" size={56} className="border-2 border-surface-container" />
+                <Avatar src={PORTRAIT} alt={PRACTITIONER.name} size={56} className="border-2 border-surface-container" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
-                    <h2 className="font-title-lg text-title-lg leading-snug text-on-surface">Elena Vance</h2>
+                    <h2 className="font-title-lg text-title-lg leading-snug text-on-surface">{PRACTITIONER.name}</h2>
                     <span className="flex items-center gap-0.5 font-label-sm text-label-sm text-secondary">
                       <Icon name="star" filled className="text-[14px]" />
                       4.98
@@ -94,7 +94,7 @@ export function ReviewView() {
                   </p>
                   {bioOpen && (
                     <p id="practitioner-bio" className="mt-2 font-body-sm text-body-sm leading-relaxed text-on-surface-variant">
-                      Elena blends licensed massage therapy, 500-hour yoga training and habit coaching into single-client
+                      {PRACTITIONER.firstName} blends licensed massage therapy, 500-hour yoga training and habit coaching into single-client
                       sessions, holding just two clients a day so each practice can unfold without hurry.
                     </p>
                   )}
@@ -246,7 +246,7 @@ export function ReviewView() {
                   </div>
                   {state.promoCode && promoDraft === null && (
                     <p className="mt-1.5 font-label-sm text-label-sm text-primary" role="status">
-                      Code {state.promoCode} saved — Elena will apply it when your session is billed.
+                      Code {state.promoCode} saved — {PRACTITIONER.firstName} will apply it when your session is billed.
                     </p>
                   )}
                 </form>
@@ -298,7 +298,7 @@ export function ReviewView() {
                   className="inline-flex items-center gap-1.5 rounded-full border border-surface-variant/60 bg-surface-container-low px-3 py-1.5 font-label-sm text-label-sm text-primary transition-colors duration-200 hover:bg-surface-container"
                 >
                   <Icon name="mail" className="text-[16px]" />
-                  <span>Email Elena</span>
+                  <span>Email {PRACTITIONER.firstName}</span>
                 </a>
                 <a
                   href={STUDIO.instagram}

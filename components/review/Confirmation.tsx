@@ -6,7 +6,7 @@ import { useBooking } from "@/lib/booking-context";
 import { useDatabase } from "@/lib/db-context";
 import { formatDuration, formatPrice } from "@/lib/format";
 import { downloadIcs, googleCalendarUrl, type CalendarEvent } from "@/lib/ics";
-import { ROUTES, STUDIO } from "@/lib/nav";
+import { PRACTITIONER, ROUTES, STUDIO } from "@/lib/nav";
 import { scheduleSummary, sessionDescription } from "@/lib/session-summary";
 import { Icon } from "../Icon";
 import { Card } from "../ui/Card";
@@ -28,7 +28,7 @@ export function Confirmation() {
 
   const event: CalendarEvent | null = active && schedule ? {
     uid: confirmation.reference,
-    title: "Soma Studio · Custom Sanctuary Session with Elena Vance",
+    title: `${STUDIO.name} · Custom Sanctuary Session with ${PRACTITIONER.name}`,
     description: `${sessionDescription(blocks)}\n\nReference ${confirmation.reference}`,
     location: `${STUDIO.room}, ${STUDIO.address}`,
     date: schedule.date,
@@ -53,7 +53,7 @@ export function Confirmation() {
         </h1>
         <p className="mx-auto max-w-sm font-body-sm text-body-sm text-on-surface-variant">
           {active
-            ? "Your session is reserved. Elena will reach out personally before you arrive — no card is charged until your session concludes."
+            ? `Your session is reserved. ${PRACTITIONER.firstName} will reach out personally before you arrive — no card is charged until your session concludes.`
             : status === "cancelled"
               ? "This reservation is no longer held. Build a new session whenever you are ready."
               : "Thank you for practising with us. Build your next session whenever you are ready."}
