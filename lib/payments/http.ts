@@ -1,4 +1,4 @@
-import { PaymentGatewayNotConfiguredError } from "./gateway";
+import { PaymentGatewayError, PaymentGatewayNotConfiguredError } from "./gateway";
 
 /** Shared plumbing for the `app/api/payments` route handlers. */
 
@@ -33,6 +33,10 @@ export async function handle(run: () => Promise<unknown>): Promise<Response> {
     if (error instanceof PaymentGatewayNotConfiguredError) {
       console.error("[payments]", error.message);
       return Response.json({ error: "Payments are not set up yet. Please contact the studio." }, { status: 503 });
+    }
+    if (error instanceof PaymentGatewayError) {
+      console.error("[payments]", error.code ?? "", error.message);
+      return Response.json({ error: error.message }, { status: 502 });
     }
     console.error("[payments] unexpected error", error);
     return Response.json({ error: "Payment service error" }, { status: 502 });

@@ -124,7 +124,7 @@ export class StubPaymentGateway implements PaymentGateway {
     return { ok: true, customerProfileId, paymentProfileId };
   }
 
-  async getStoredCard(customerProfileId: string, paymentProfileId: string): Promise<StoredCard> {
+  async getStoredCard(customerProfileId: string, paymentProfileId = ""): Promise<StoredCard> {
     const parsed = parsePaymentProfile(paymentProfileId);
     if (!customerProfileId.startsWith(PROFILE_PREFIX) || !parsed) throw new Error("Unknown payment profile");
     return { customerProfileId, paymentProfileId, ...parsed };

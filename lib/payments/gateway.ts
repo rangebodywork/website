@@ -51,16 +51,23 @@ export interface PurchaseInput {
 
 export type TransactionResult =
   | { ok: true; transactionId: string; amount: number; authCode: string }
-  | { ok: false; code: "declined" | "error"; message: string };
+  | { ok: false; code: "declined" | "duplicate" | "error"; message: string };
 
 export interface PaymentGateway {
   readonly mode: GatewayMode;
 
   createCustomerProfile(input: CustomerProfileInput): Promise<{ customerProfileId: string }>;
-  /** Token for the hosted add-payment form; card data goes from the browser straight to the processor. */
-  getHostedCardForm(customerProfileId: string): Promise<HostedCardForm>;
-  /** Masked details of a payment profile the hosted form just created. */
-  getStoredCard(customerProfileId: string, paymentProfileId: string): Promise<StoredCard>;
+  /**
+   * Token for the hosted add-payment form; card data goes from the browser straight to the processor.
+   * `iframeCommunicatorUrl` is our page that relays the form's events (saved, cancelled, resized).
+   */
+  getHostedCardForm(customerProfileId: string, options?: { iframeCommunicatorUrl?: string }): Promise<HostedCardForm>;
+  /**
+   * Masked details of a payment profile the hosted form just created. Without a
+   * `paymentProfileId`, the profile's newest payment profile (the hosted form
+   * does not tell the browser which id it created).
+   */
+  getStoredCard(customerProfileId: string, paymentProfileId?: string): Promise<StoredCard>;
 
   /** Merchant-initiated charge of a card on file (session total or late-cancel fee). */
   chargeStoredCard(charge: StoredCardCharge): Promise<TransactionResult>;
@@ -81,6 +88,17 @@ export class PaymentGatewayNotConfiguredError extends Error {
           "Unset AUTHORIZE_NET_* env vars to use the stub, or finish lib/payments/authorize-net-gateway.ts.",
     );
     this.name = "PaymentGatewayNotConfiguredError";
+  }
+}
+
+/** The processor answered with an error we can show (its message carries no secrets). */
+export class PaymentGatewayError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "PaymentGatewayError";
   }
 }
 
