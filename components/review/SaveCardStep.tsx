@@ -49,7 +49,7 @@ export function SaveCardStep() {
   const hostedSaved = () =>
     run(async () => {
       if (!form) return;
-      actions.setSavedCard(await paymentsApi.storedCard(form.customerProfileId));
+      actions.setSavedCard(await paymentsApi.storedCard(form));
       setForm(null);
     });
 
@@ -57,7 +57,7 @@ export function SaveCardStep() {
     run(async () => {
       if (!form) return;
       const { customerProfileId, paymentProfileId } = await paymentsApi.submitTestCard(form, card);
-      actions.setSavedCard(await paymentsApi.storedCard(customerProfileId, paymentProfileId));
+      actions.setSavedCard(await paymentsApi.storedCard({ customerProfileId, profileToken: form.profileToken }, paymentProfileId));
       setForm(null);
       setCard({ number: "", expiry: "", cvc: "" });
     });

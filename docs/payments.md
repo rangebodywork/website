@@ -120,6 +120,13 @@ body, using the Signature Key, against the `X-ANET-Signature` header.
   authentication failure (`E00007`/`E00008`) it also asks the other
   environment, to say "these look like production keys but
   AUTHORIZE_NET_ENV=sandbox" rather than just "failed".
+- `lib/payments/binding.ts`: Authorize.net customer profile ids are sequential
+  numbers, so the browser never acts on a bare id. `card-form` returns
+  `profileToken` = HMAC-SHA256 of the id keyed by `PAYMENTS_SESSION_SECRET`;
+  card-form reuse, `stored-card` and `charge` answer 403 unless it matches.
+  The booking keeps the token next to the profile reference. This stops
+  guessing, not a stolen token: real customer accounts are still on the
+  go-live checklist.
 - `components/review/SaveCardStep.tsx`: with a real gateway, POSTs the token
   into an iframe showing the hosted add-payment page.
   `public/payments/iframe-communicator.html` (based on Authorize.net's sample)
@@ -177,6 +184,7 @@ Variables.
 | `AUTHORIZE_NET_API_LOGIN_ID` | sandbox login ID | empty | Empty means the stub (refused in production runtimes). |
 | `AUTHORIZE_NET_TRANSACTION_KEY` | sandbox transaction key | empty | |
 | `AUTHORIZE_NET_ENV` | `sandbox` (or empty) | empty | Defaults to `sandbox`. Anything other than `sandbox`/`production` disables payments. |
+| `PAYMENTS_SESSION_SECRET` | `openssl rand -hex 32` | empty (its own value at go-live) | Required with Authorize.net keys, else payments are disabled. Signs `profileToken`; see below. |
 | `AUTHORIZE_NET_SIGNATURE_KEY` | sandbox signature key (optional) | empty | 128 hex characters; checked by the health check. Webhooks are not built yet. |
 | `AUTHORIZE_NET_ALLOW_PRODUCTION` | empty | empty | `1` allows `AUTHORIZE_NET_ENV=production`. **Not until the go-live checklist is done.** |
 | `PAYMENTS_ALLOW_STUB` | empty (or `1` for a stub demo) | empty | Never on the live site. |
@@ -190,7 +198,8 @@ keeps answering `{"mode":"disabled"}`.
    https://developer.authorize.net/hello_world/sandbox.html and copy its API
    Login ID and Transaction Key (Account → Settings → Security Settings → API
    Credentials & Keys). Optionally create a Signature Key on the same screen.
-2. Put them in `.env.local` (`AUTHORIZE_NET_ENV=sandbox` or empty) and run
+2. Put them in `.env.local` (`AUTHORIZE_NET_ENV=sandbox` or empty) together
+   with `PAYMENTS_SESSION_SECRET=$(openssl rand -hex 32)`, and run
    `npm run payments:check`. Expect `mode: sandbox`, `result: PASS`,
    `I00001 Successful.` A `FAIL` with "These look like production keys" means
    the keys came from the merchant (production) account, not the sandbox.

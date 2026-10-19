@@ -21,20 +21,25 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return data;
 }
 
-export type CardForm = HostedCardForm & { mode: "stub" | "sandbox" | "production"; customerProfileId: string };
+export type CardForm = HostedCardForm & { mode: "stub" | "sandbox" | "production"; customerProfileId: string; profileToken: string };
 
 export const paymentsApi = {
-  startCardForm: (input: { merchantCustomerId: string; name?: string; email?: string; customerProfileId?: string }) =>
+  startCardForm: (input: { merchantCustomerId: string; name?: string; email?: string; customerProfileId?: string; profileToken?: string }) =>
     post<CardForm>("/api/payments/card-form", input),
   /** Test mode: the stub's stand-in for the processor's hosted form. */
   submitTestCard: (form: CardForm, card: { number: string; expiry: string; cvc: string }) =>
     post<{ customerProfileId: string; paymentProfileId: string }>(form.formUrl, { token: form.token, ...card }),
   status: () => fetch("/api/payments/status", { cache: "no-store" }).then((r) => r.json() as Promise<{ mode: CardForm["mode"] | "disabled" }>),
-  storedCard: (customerProfileId: string, paymentProfileId?: string) =>
-    post<SavedCard>("/api/payments/stored-card", { customerProfileId, paymentProfileId }),
+  storedCard: (form: Pick<CardForm, "customerProfileId" | "profileToken">, paymentProfileId?: string) =>
+    post<SavedCard>("/api/payments/stored-card", {
+      customerProfileId: form.customerProfileId,
+      profileToken: form.profileToken,
+      paymentProfileId,
+    }),
   charge: (input: { card: SavedCard; amount: number; reason: PaymentKind; bookingId: string }) =>
     post<TransactionResult>("/api/payments/charge", {
       customerProfileId: input.card.customerProfileId,
+      profileToken: input.card.profileToken,
       paymentProfileId: input.card.paymentProfileId,
       amount: input.amount,
       reason: input.reason,

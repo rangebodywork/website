@@ -203,8 +203,9 @@ function parsePayment(value: unknown): BookingPayment | undefined {
   if (!hasStrings(value.card, ["customerProfileId", "paymentProfileId", "last4", "brand"])) return undefined;
   if (!PAYMENT_STATUSES.includes(value.status as PaymentStatus)) return undefined;
   const { customerProfileId, paymentProfileId, last4, brand } = value.card as Record<string, string>;
+  const profileToken = typeof value.card.profileToken === "string" ? value.card.profileToken : "";
   return {
-    card: { customerProfileId, paymentProfileId, last4, brand },
+    card: { customerProfileId, paymentProfileId, last4, brand, profileToken },
     status: value.status as PaymentStatus,
     transactions: Array.isArray(value.transactions) ? value.transactions.filter(isPaymentRecord) : [],
   };

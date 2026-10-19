@@ -8,7 +8,11 @@ import { StubPaymentGateway } from "./stub-gateway";
 
 /** Unit tests: env selection, request shapes and response parsing, with a mocked fetch. */
 
-const KEYS = { AUTHORIZE_NET_API_LOGIN_ID: "login1234", AUTHORIZE_NET_TRANSACTION_KEY: "txkey567890" };
+const KEYS = {
+  AUTHORIZE_NET_API_LOGIN_ID: "login1234",
+  AUTHORIZE_NET_TRANSACTION_KEY: "txkey567890",
+  PAYMENTS_SESSION_SECRET: "0123456789abcdef0123456789abcdef",
+};
 
 type Call = { url: string; body: Record<string, Record<string, unknown>> };
 

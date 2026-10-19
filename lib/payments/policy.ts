@@ -7,8 +7,13 @@ import type { StoredCard } from "./gateway";
  * the gateway; see `lib/payments/client.ts` for the calls to `/api/payments`.
  */
 
-/** Saved-card reference + display details. Never a card number. */
-export type SavedCard = StoredCard;
+/**
+ * Saved-card reference + display details. Never a card number. `profileToken`
+ * is the server's signature over `customerProfileId` (lib/payments/binding.ts);
+ * the payment routes refuse the profile without it. Empty on cards saved
+ * before it existed, which must be saved again.
+ */
+export type SavedCard = StoredCard & { profileToken: string };
 
 export type PaymentStatus = "card-on-file" | "charged" | "fee-charged" | "failed";
 export type PaymentKind = "session" | "late-cancel-fee";

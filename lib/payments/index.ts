@@ -1,4 +1,5 @@
 import { AuthorizeNetGateway } from "./authorize-net-gateway";
+import { profileSecret } from "./binding";
 import { PaymentGatewayNotConfiguredError, type PaymentGateway } from "./gateway";
 import { StubPaymentGateway } from "./stub-gateway";
 
@@ -46,6 +47,8 @@ export function selectPaymentGateway(
         "AUTHORIZE_NET_ALLOW_PRODUCTION=1 is set.",
     );
   }
+  // Fail closed without the secret that binds customer profiles to the browser (see binding.ts).
+  profileSecret(mode, env);
   return new AuthorizeNetGateway({
     apiLoginId,
     transactionKey,

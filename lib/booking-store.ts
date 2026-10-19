@@ -119,7 +119,8 @@ function parseSavedCard(value: unknown): SavedCard | null {
   const v = value as Record<string, unknown>;
   const keys = ["customerProfileId", "paymentProfileId", "last4", "brand"] as const;
   if (!keys.every((k) => typeof v[k] === "string")) return null;
-  return Object.fromEntries(keys.map((k) => [k, v[k]])) as unknown as SavedCard;
+  const card = Object.fromEntries(keys.map((k) => [k, v[k]])) as Omit<SavedCard, "profileToken">;
+  return { ...card, profileToken: typeof v.profileToken === "string" ? v.profileToken : "" };
 }
 
 export function parseBookingState(raw: string | null): BookingState {

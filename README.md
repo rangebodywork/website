@@ -278,6 +278,7 @@ give them a `NEXT_PUBLIC_` prefix.
 | `AUTHORIZE_NET_API_LOGIN_ID` | API Login ID. Leave it empty to use the stub. | Preview: **sandbox** login ID. Production: leave empty for now. |
 | `AUTHORIZE_NET_TRANSACTION_KEY` | Transaction Key. Leave it empty to use the stub. | Preview: **sandbox** key. Production: leave empty for now. |
 | `AUTHORIZE_NET_ENV` | `sandbox` (the default) or `production`. Anything else disables payments. | Preview: `sandbox`. Production: leave empty. |
+| `PAYMENTS_SESSION_SECRET` | Signs the customer profile id the browser holds (`profileToken`), so the payment routes never act on a bare, guessable id. At least 32 characters; generate with `openssl rand -hex 32`. Required with Authorize.net keys: without it payments are disabled. The stub uses a built-in dev value. | Preview: its own random value. Production: its own random value once production is allowed. |
 | `AUTHORIZE_NET_SIGNATURE_KEY` | Optional. Will verify webhook signatures (`X-ANET-Signature`); when set, the health check requires it to be 128 hex characters. | Preview: sandbox Signature Key, if you have it. Production: leave empty. |
 | `AUTHORIZE_NET_ALLOW_PRODUCTION` | `1` allows `AUTHORIZE_NET_ENV=production`. Without it production keys are refused and payments are disabled. **Do not set it until the go-live checklist in `docs/payments.md` is done** (server-side bookings and amounts, real admin auth). | Nowhere yet. |
 | `PAYMENTS_ALLOW_STUB` | `1` lets a production runtime use the stub when the keys are empty. | Only for a demo deployment. Never on the live site. |
