@@ -39,7 +39,9 @@ async function bookings(page: Page): Promise<Booking[]> {
 /** Fills Authorize.net's hosted add-payment form inside our iframe. */
 async function saveSandboxCard(page: Page) {
   await page.getByLabel(/I authorize Soma Studio/).check();
+  const cardForm = page.waitForResponse((r) => r.url().endsWith("/api/payments/card-form"));
   await page.getByRole("button", { name: "Save card on file" }).click();
+  const form = (await (await cardForm).json()) as { customerProfileId: string; profileToken: string };
   await expect(page.getByText(/Sandbox · Authorize.net test account/)).toBeVisible();
   const frame = page.frameLocator('iframe[name="anet-add-payment"]');
   const field = (id: string, label: RegExp) => frame.locator(`#${id}`).or(frame.getByLabel(label)).first();
@@ -48,11 +50,20 @@ async function saveSandboxCard(page: Page) {
   await field("expiryDate", /expiration/i).fill(`12${nextYear}`);
   await field("cvv", /card code|cvv|security/i).fill("123");
   await frame.getByRole("button", { name: /save/i }).click();
-  // On an http dev server Authorize.net can't reach our communicator, so confirm by hand.
+  // Wait until Authorize.net has stored the card: our stored-card route finds it.
+  await expect
+    .poll(
+      async () =>
+        (await page.request.post("/api/payments/stored-card", { data: { customerProfileId: form.customerProfileId, profileToken: form.profileToken } })).status(),
+      { timeout: 30_000 },
+    )
+    .toBe(200);
+  // Over https the communicator reports the save; on this http server confirm by hand.
   const savedLine = page.getByText(/ending 1111 saved/);
-  await page.waitForTimeout(5_000);
-  if (!(await savedLine.isVisible())) await page.getByRole("button", { name: "I've saved my card" }).click();
-  await expect(savedLine).toBeVisible({ timeout: 30_000 });
+  const manualConfirm = page.getByRole("button", { name: "I've saved my card" });
+  await expect(savedLine.or(manualConfirm)).toBeVisible();
+  if (!(await savedLine.isVisible())) await manualConfirm.click();
+  await expect(savedLine).toBeVisible();
 }
 
 async function bookWithSandboxCard(page: Page): Promise<Booking> {
