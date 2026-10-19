@@ -71,7 +71,9 @@ let cached: { at: number; result: Promise<PaymentsHealth> } | null = null;
 
 /**
  * At most one Authorize.net call per minute per server instance, however often
- * the public health route is hit. Failures are cached too.
+ * the public health route is hit. Failures are cached too. The cache is this
+ * instance's memory only: several (or freshly cold-started) instances each
+ * keep their own, so it limits load rather than strictly rate-limiting.
  */
 export function cachedPaymentsHealth(now = Date.now()): Promise<PaymentsHealth> {
   if (!cached || now - cached.at >= CACHE_MS) {

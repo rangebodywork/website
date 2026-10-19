@@ -291,7 +291,10 @@ and the e2e suite sets `PAYMENTS_ALLOW_STUB=1`. Whenever the stub is active, `/a
 stub-mode banner.
 
 **Checking keys.** `npm run payments:check` checks the keys in `.env.local`. `GET /api/payments/health` does the
-same on a deployment and returns `{ mode, credentialsOk, code, message }` with no secrets, cached for 60 seconds.
+same on a deployment and returns `{ mode, credentialsOk, code, message }` with no secrets, cached for 60 seconds. The cache is in memory
+**per server instance**: Vercel may run several instances (and starts fresh ones on cold starts), so the route
+can reach Authorize.net more than once a minute in total, and right after a key change instances can disagree
+for up to a minute.
 If the keys fail, `payments:check` also tries the other environment and says so ("These look like production keys
 but AUTHORIZE_NET_ENV=sandbox"); the public health route only talks to the configured environment.
 

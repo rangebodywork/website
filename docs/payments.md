@@ -135,7 +135,11 @@ body, using the Signature Key, against the `X-ANET-Signature` header.
   authentication failure (`E00007`/`E00008`), `payments:check` also asks the
   other environment, to say "these look like production keys but
   AUTHORIZE_NET_ENV=sandbox" rather than just "failed". The public health
-  route only calls the configured environment.
+  route only calls the configured environment. Its 60 s cache lives in each
+  server instance's memory, not in shared storage: with several Vercel
+  instances (or cold starts) Authorize.net can see more than one check a
+  minute, and after a key change instances may disagree for up to a minute.
+  That is acceptable for a credential check; it is not a hard rate limit.
 - `lib/payments/binding.ts`: Authorize.net customer profile ids are sequential
   numbers, so the browser never acts on a bare id. `card-form` returns
   `profileToken` = HMAC-SHA256 of the id keyed by `PAYMENTS_SESSION_SECRET`;
