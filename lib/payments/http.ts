@@ -54,7 +54,7 @@ export async function handle(run: () => Promise<unknown>): Promise<Response> {
     }
     if (error instanceof PaymentGatewayError) {
       console.error("[payments]", error.code ?? "", error.message);
-      return Response.json({ error: error.message }, { status: 502 });
+      return Response.json({ error: error.publicMessage }, { status: 502 });
     }
     console.error("[payments] unexpected error", error);
     return Response.json({ error: "Payment service error" }, { status: 502 });

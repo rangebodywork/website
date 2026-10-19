@@ -105,11 +105,19 @@ export class PaymentGatewayNotConfiguredError extends Error {
   }
 }
 
-/** The processor answered with an error we can show (its message carries no secrets). */
+/** What customers see for any processor failure; the detail goes to the server log only. */
+export const GENERIC_PAYMENT_ERROR = "The payment service couldn't complete this. Please try again, or contact the studio.";
+
+/**
+ * The processor failed. `message` is the detail for server logs, the health
+ * check and `payments:check` (it may name env vars or Authorize.net codes such
+ * as E00007); `publicMessage` is all a browser ever sees.
+ */
 export class PaymentGatewayError extends Error {
   constructor(
     message: string,
     readonly code?: string,
+    readonly publicMessage: string = GENERIC_PAYMENT_ERROR,
   ) {
     super(message);
     this.name = "PaymentGatewayError";

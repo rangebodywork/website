@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { AuthorizeNetGateway, ENDPOINTS, invoiceNumber, parseTransaction } from "./authorize-net-gateway";
-import { PaymentGatewayError, PaymentGatewayNotConfiguredError } from "./gateway";
+import { GENERIC_PAYMENT_ERROR, PaymentGatewayError, PaymentGatewayNotConfiguredError } from "./gateway";
+import { handle } from "./http";
 import { checkPaymentsHealth, isValidSignatureKey, maskLoginId } from "./health";
 import { selectPaymentGateway } from "./index";
 import { StubPaymentGateway } from "./stub-gateway";
@@ -221,11 +222,32 @@ describe("parseTransaction", () => {
     assert.equal(!r.ok && r.code, "unknown");
   });
 
-  it("maps held-for-review and missing transaction responses to errors", () => {
+  it("treats held-for-review as unknown (it may still be approved)", () => {
     const held = parseTransaction(ok({ transactionResponse: { responseCode: "4", transId: "9" } }), 10);
-    assert.equal(!held.ok && held.code, "error");
-    const none = parseTransaction(err("E00003", "Invalid element."), 10);
-    assert.deepEqual(none, { ok: false, code: "error", message: "Invalid element. (E00003)" });
+    assert.equal(!held.ok && held.code, "unknown");
+  });
+
+  it("keeps processor and config detail out of the result message", () => {
+    const none = parseTransaction(AUTH_FAILED, 10);
+    assert.deepEqual(none, { ok: false, code: "error", message: GENERIC_PAYMENT_ERROR });
+    const failed = parseTransaction(
+      err("E00027", "The transaction was unsuccessful.", {
+        transactionResponse: { responseCode: "3", errors: { error: [{ errorCode: "13", errorText: "The merchant login ID or password is invalid or the account is inactive." }] } },
+      }),
+      10,
+    );
+    assert.deepEqual(failed, { ok: false, code: "error", message: GENERIC_PAYMENT_ERROR });
+  });
+});
+
+describe("customer-facing errors", () => {
+  it("route responses show only the public message, never E00007 or env hints", async () => {
+    const { impl } = mockFetch(AUTH_FAILED);
+    const res = await handle(() => gateway(impl).getHostedCardForm("1"));
+    assert.equal(res.status, 502);
+    const text = await res.text();
+    assert.equal(JSON.parse(text).error, GENERIC_PAYMENT_ERROR);
+    assert.doesNotMatch(text, /E0000|AUTHORIZE_NET|sandbox/);
   });
 });
 

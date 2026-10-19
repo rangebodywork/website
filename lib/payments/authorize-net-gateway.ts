@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  GENERIC_PAYMENT_ERROR,
   PaymentGatewayError,
   type ChargeLookup,
   type ChargeReason,
@@ -134,13 +135,23 @@ export function matchCharge(transactions: TransactionSummary[], invoice: string)
 }
 const duplicateWindow = { setting: [{ settingName: "duplicateWindow", settingValue: String(DUPLICATE_WINDOW_SECONDS) }] };
 
-/** Maps a createTransactionResponse to our result; declines are results, not errors. */
+/** A processor error as a result: generic for the browser, detail (codes, config hints) in the server log. */
+function errorResult(detail: string): TransactionResult {
+  console.error("[payments] transaction error:", detail);
+  return { ok: false, code: "error", message: GENERIC_PAYMENT_ERROR };
+}
+
+/**
+ * Maps a createTransactionResponse to our result; declines are results, not
+ * errors. A decline keeps the issuer's reason (e.g. "This transaction has been
+ * declined."); every other failure is generic outside the server log.
+ */
 export function parseTransaction(data: ApiResponse, amount: number): TransactionResult {
   const tr = data.transactionResponse as TransactionResponse | undefined;
   const error = tr?.errors?.error?.[0];
   if (!tr?.responseCode) {
     const m = firstMessage(data);
-    return { ok: false, code: "error", message: `${m.text} (${m.code})` };
+    return errorResult(`${m.code} ${m.text}`);
   }
   switch (tr.responseCode) {
     case "1":
@@ -148,17 +159,14 @@ export function parseTransaction(data: ApiResponse, amount: number): Transaction
     case "2":
       return { ok: false, code: "declined", message: error?.errorText ?? "The card was declined." };
     case "4":
-      return {
-        ok: false,
-        code: "error",
-        message: `Held for review by Authorize.net (transaction ${tr.transId}). Check the Merchant Interface before retrying.`,
-      };
+      // Held for review: it may still be approved, so retrying could charge twice.
+      return unknownOutcome(`transaction ${tr.transId} held for review`);
     default:
       if (error?.errorCode === DUPLICATE_TRANSACTION) {
         // An identical charge went in within the duplicate window; it may well have succeeded.
         return unknownOutcome(`duplicate within ${DUPLICATE_WINDOW_SECONDS}s window`);
       }
-      return { ok: false, code: "error", message: error?.errorText ?? firstMessage(data).text };
+      return errorResult(`${error?.errorCode ?? firstMessage(data).code} ${error?.errorText ?? firstMessage(data).text}`);
   }
 }
 
@@ -192,7 +200,7 @@ export class AuthorizeNetGateway implements PaymentGateway {
         signal: AbortSignal.timeout(this.config.timeoutMs ?? 20_000),
       });
     } catch {
-      throw new PaymentGatewayError("Could not reach Authorize.net. Please try again.", "network");
+      throw new PaymentGatewayError("Could not reach Authorize.net", "network");
     }
     if (!res.ok) throw new PaymentGatewayError(`Authorize.net answered HTTP ${res.status}`, "http");
     // The JSON API prefixes its responses with a UTF-8 byte order mark.
@@ -297,7 +305,11 @@ export class AuthorizeNetGateway implements PaymentGateway {
     }
     const card = profile?.payment?.creditCard;
     if (!profile?.customerPaymentProfileId || !card?.cardNumber) {
-      throw new PaymentGatewayError("No saved card was found. Please save your card again.", "no-card");
+      throw new PaymentGatewayError(
+        `No credit card payment profile on customer profile ${customerProfileId}`,
+        "no-card",
+        "No saved card was found. Please save your card again.",
+      );
     }
     return {
       customerProfileId,
