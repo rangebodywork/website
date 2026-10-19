@@ -1,12 +1,8 @@
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 
-export const PORTRAITS = {
-  header: "/images/practitioner-header.jpg",
-  intake: "/images/practitioner-intake.jpg",
-  review: "/images/practitioner-review.jpg",
-  schedule: "/images/practitioner-schedule.jpg",
-} as const;
+/** Practitioner headshot: face-centred 512px square crop of the original studio photo. */
+export const PORTRAIT = "/images/practitioner.jpg";
 
 interface AvatarProps {
   src: string;

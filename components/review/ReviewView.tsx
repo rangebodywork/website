@@ -6,7 +6,7 @@ import { useBooking } from "@/lib/booking-context";
 import { formatDuration, formatPrice } from "@/lib/format";
 import { ROUTES, STUDIO } from "@/lib/nav";
 import { pressureIntent, primaryGoal, scheduleSummary } from "@/lib/session-summary";
-import { Avatar, PORTRAITS } from "../Avatar";
+import { Avatar, PORTRAIT } from "../Avatar";
 import { EmptySession } from "../EmptySession";
 import { Icon } from "../Icon";
 import { validateHealthRecord } from "../intake/HealthRecord";
@@ -76,7 +76,7 @@ export function ReviewView() {
             {/* Practitioner */}
             <Card className="p-4">
               <div className="flex items-start gap-3.5">
-                <Avatar src={PORTRAITS.review} alt="Elena Vance" size={56} className="border-2 border-surface-container" />
+                <Avatar src={PORTRAIT} alt="Elena Vance" size={56} className="border-2 border-surface-container" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
                     <h2 className="font-title-lg text-title-lg leading-snug text-on-surface">Elena Vance</h2>

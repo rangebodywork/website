@@ -6,7 +6,7 @@ import { useBooking } from "@/lib/booking-context";
 import { useDatabase } from "@/lib/db-context";
 import { formatPrice } from "@/lib/format";
 import { ROUTES } from "@/lib/nav";
-import { Avatar, PORTRAITS } from "../Avatar";
+import { Avatar, PORTRAIT } from "../Avatar";
 import { EmptySession } from "../EmptySession";
 import { Icon } from "../Icon";
 import { StickyActionBar } from "../StickyActionBar";
@@ -52,7 +52,7 @@ export function IntakeView() {
         <div className="space-y-6 lg:sticky lg:top-36">
           <div className="rounded-xl border border-outline-variant/40 bg-surface-container-low p-4.5 shadow-ambient">
             <div className="flex items-center gap-3.5">
-              <Avatar src={PORTRAITS.intake} alt="Elena Vance" size={48} eager className="ring-2 ring-primary-fixed" />
+              <Avatar src={PORTRAIT} alt="Elena Vance" size={48} eager className="ring-2 ring-primary-fixed" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="font-title-md text-title-md font-medium text-primary">Elena Vance, LMT</span>

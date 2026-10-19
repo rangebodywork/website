@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar, PORTRAITS } from "../Avatar";
+import { Avatar, PORTRAIT } from "../Avatar";
 import { Icon } from "../Icon";
 import { Chip } from "../ui/Chip";
 import { SCHEDULE_FILTERS, type ScheduleCategory } from "@/lib/schedule-data";
@@ -20,7 +20,7 @@ export function ScheduleView() {
     <main className="mx-auto max-w-4xl space-y-8 px-4 pb-12 pt-4 sm:px-6 md:px-8">
       <section className="flex flex-col justify-between gap-4 rounded-xl border border-surface-variant/40 bg-surface-container-low p-4 shadow-ambient sm:flex-row sm:items-center sm:p-5">
         <div className="flex items-center gap-3.5">
-          <Avatar src={PORTRAITS.schedule} alt="Elena Vance" size={56} eager className="border border-surface-variant/60" />
+          <Avatar src={PORTRAIT} alt="Elena Vance" size={56} eager className="border border-surface-variant/60" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h1 className="font-title-md text-title-md font-semibold text-primary">Elena Vance, E-RYT 500</h1>

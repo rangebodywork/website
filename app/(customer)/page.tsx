@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Avatar, PORTRAITS } from "@/components/Avatar";
+import { Avatar, PORTRAIT } from "@/components/Avatar";
 import { BuilderView } from "@/components/builder/BuilderView";
 import { Icon } from "@/components/Icon";
 import { HeaderIconLink, SiteHeader } from "@/components/SiteHeader";
@@ -28,7 +28,7 @@ export default function BuilderPage() {
             </Link>
             <HeaderIconLink href={ROUTES.schedule} icon="calendar_today" label="View schedule" />
             <Avatar
-              src={PORTRAITS.header}
+              src={PORTRAIT}
               alt="Elena Vance"
               size={36}
               eager
