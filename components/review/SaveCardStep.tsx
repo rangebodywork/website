@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useBooking } from "@/lib/booking-context";
 import { paymentsApi, type CardForm } from "@/lib/payments/client";
 import { Icon } from "../Icon";
@@ -202,11 +202,23 @@ export function SaveCardStep() {
 
 const FRAME_NAME = "anet-add-payment";
 
+const noSubscribe = () => () => {};
+/**
+ * Authorize.net only uses an https communicator page, so on a plain-http
+ * server (local dev, the e2e build) its events never arrive. False during SSR.
+ */
+const useInsecureOrigin = () =>
+  useSyncExternalStore(
+    noSubscribe,
+    () => window.location.protocol === "http:",
+    () => false,
+  );
+
 /**
  * Authorize.net's hosted "add payment" page in an iframe: the form token is
  * POSTed into the frame, and public/payments/iframe-communicator.html relays
- * its events (saved, cancelled, resized) back here. Where the communicator
- * can't be used (plain-http dev servers), "I've saved my card" does the same.
+ * its events (saved, cancelled, resized) back here. Only on plain http, where
+ * the communicator can't be used, does "I've saved my card" stand in for it.
  */
 function HostedCardForm({
   form,
@@ -222,6 +234,7 @@ function HostedCardForm({
   const post = useRef<HTMLFormElement>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(560);
+  const manualConfirm = useInsecureOrigin();
 
   useEffect(() => {
     post.current?.submit();
@@ -267,9 +280,11 @@ function HostedCardForm({
         style={{ height }}
       />
       <div className="flex gap-2">
-        <button type="button" disabled={busy} onClick={onSaved} className="rounded-lg bg-primary px-4 py-2 text-on-primary disabled:opacity-60">
-          I&apos;ve saved my card
-        </button>
+        {manualConfirm && (
+          <button type="button" disabled={busy} onClick={onSaved} className="rounded-lg bg-primary px-4 py-2 text-on-primary disabled:opacity-60">
+            I&apos;ve saved my card
+          </button>
+        )}
         <button type="button" onClick={onCancel} className="rounded-lg border border-outline-variant px-4 py-2 text-on-surface">
           Back
         </button>
