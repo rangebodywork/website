@@ -220,6 +220,7 @@ function HostedCardForm({
   onCancel: () => void;
 }) {
   const post = useRef<HTMLFormElement>(null);
+  const frame = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(560);
 
   useEffect(() => {
@@ -230,6 +231,11 @@ function HostedCardForm({
     const listen = (event: MessageEvent) => {
       const data = event.data as { source?: string; qstr?: string } | null;
       if (event.origin !== window.location.origin || data?.source !== "anet-iframe-communicator" || !data.qstr) return;
+      // The sender must be the communicator nested in *our* card iframe: its parent is
+      // the Authorize.net page in that iframe. (The communicator is same-origin, so
+      // reading its .parent is allowed; any other same-origin window is ignored.)
+      const sender = event.source as Window | null;
+      if (!sender || !frame.current?.contentWindow || sender.parent !== frame.current.contentWindow) return;
       const params = new URLSearchParams(data.qstr);
       const action = params.get("action");
       if (action === "successfulSave") onSaved();
@@ -254,6 +260,7 @@ function HostedCardForm({
         <input type="hidden" name="token" value={form.token} />
       </form>
       <iframe
+        ref={frame}
         name={FRAME_NAME}
         title="Secure card form (Authorize.net)"
         className="w-full rounded-lg border border-outline-variant bg-white"
